@@ -1,0 +1,136 @@
+<main class="auth-page">
+  <div class="auth-card profile-card">
+    <h1 class="auth-title">Редактирование профиля</h1>
+    
+    <div class="avatar-section">
+      <div class="avatar-container">
+        <img src="/ui/BMW 1.jpg" 
+            alt="Аватар" 
+            class="avatar-image">
+        <label for="avatar" class="avatar-change-link">Поменять аватар</label>
+        <input type="file" 
+            id="avatar" 
+            name="avatar" 
+            accept="image/*" 
+            class="avatar-input">
+      </div>
+    </div>
+    
+    <form id="profileForm" class="auth-form profile-form">
+      <div class="form-field">
+        <label class="form-label" for="email">Почта</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          class="form-input"
+          placeholder="Введите email"
+          required
+        >
+        <div class="error-message" id="emailError"></div>
+      </div>
+      
+      <div class="form-field">
+        <label class="form-label" for="login">Логин</label>
+        <input 
+          type="text" 
+          id="login" 
+          name="login" 
+          class="form-input"
+          placeholder="Введите логин"
+          required
+        >
+        <div class="error-message" id="loginError"></div>
+      </div>
+      
+      <div class="form-field">
+        <label class="form-label" for="first_name">Имя</label>
+        <input 
+          type="text" 
+          id="first_name" 
+          name="first_name" 
+          class="form-input"
+          placeholder="Введите имя"
+          required
+        >
+        <div class="error-message" id="first_nameError"></div>
+      </div>
+      
+      <div class="form-field">
+        <label class="form-label" for="second_name">Фамилия</label>
+        <input 
+          type="text" 
+          id="second_name" 
+          name="second_name" 
+          class="form-input"
+          placeholder="Введите фамилию"
+          required
+        >
+        <div class="error-message" id="second_nameError"></div>
+      </div>
+      
+      <div class="form-field">
+        <label class="form-label" for="display_name">Имя в чате</label>
+        <input 
+          type="text" 
+          id="display_name" 
+          name="display_name" 
+          class="form-input"
+          placeholder="Введите отображаемое имя"
+          required
+        >
+        <div class="error-message" id="display_nameError"></div>
+      </div>
+      
+      <div class="form-field">
+        <label class="form-label" for="phone">Телефон</label>
+        <input 
+          type="tel" 
+          id="phone" 
+          name="phone" 
+          class="form-input"
+          placeholder="+7 (XXX) XXX-XX-XX"
+          required
+        >
+        <div class="error-message" id="phoneError"></div>
+      </div>
+      
+      <div class="password-section">
+        <h3 class="password-title">Смена пароля</h3>
+        
+        <div class="form-field">
+          <label class="form-label" for="oldPassword">Старый пароль</label>
+          <input 
+            type="password" 
+            id="oldPassword" 
+            name="oldPassword" 
+            class="form-input"
+            placeholder="Введите старый пароль"
+          >
+          <div class="error-message" id="oldPasswordError"></div>
+        </div>
+        
+        <div class="form-field">
+          <label class="form-label" for="newPassword">Новый пароль</label>
+          <input 
+            type="password" 
+            id="newPassword" 
+            name="newPassword" 
+            class="form-input"
+            placeholder="Введите новый пароль"
+          >
+          <div class="error-message" id="newPasswordError"></div>
+        </div>
+      </div>
+      
+      <div class="profile-buttons">
+        <button type="submit" class="auth-button profile-save">
+          Сохранить
+        </button>
+        <a href="#" class="auth-link" id="goToChats">
+          Назад к чатам
+        </a>
+      </div>
+    </form>
+  </div>
+</main>

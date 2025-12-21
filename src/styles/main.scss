@@ -158,3 +158,75 @@ body {
     color: white;
   }
 }
+
+.profile-card {
+  max-width: 420px;
+}
+
+.avatar-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.avatar-container {
+  text-align: center;
+  position: relative;
+}
+
+.avatar-image {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid $in-color;
+  margin-bottom: 10px;
+}
+
+.avatar-change-link {
+  display: block;
+  color: $link-color;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  
+  &:hover {
+    color: $primary-color;
+  }
+}
+
+.avatar-input {
+  display: none;
+}
+
+.profile-form {
+  gap: 20px;
+}
+
+.password-section {
+  margin-top: 10px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.password-title {
+  font-size: 16px;
+  color: $black-color;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.profile-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.profile-save {
+  background: $in-color;
+  
+  &:hover {
+    background: darken($in-color, 10%);
+  }
+}
