@@ -1,10 +1,13 @@
 TalkChat это мессенджер для общения и обмена фотографиями и видео.
+
 Командой npm run build проект собирается
 Командой npm run dev проект запускается на порту 3000
+
 Ссылка на страницу входа - http://localhost:3000
 Ссылка на страницу 404 - http://localhost:3000/404.html
 Ссылка на страницу 500 - http://localhost:3000/500.html
 Ссылка на страницу редактирования профися - http://localhost:3000/#profile
+Ссылка на Netlify - https://app.netlify.com/projects/talkchat-sprint1/overview
 
 Используемые технологии:
 Frontend Framework: Vite (сборщик),
