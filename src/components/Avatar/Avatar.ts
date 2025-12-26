@@ -1,5 +1,4 @@
 import Block from '../../Core/Block';
-
 interface AvatarProps {
   src: string;
   alt?: string;
@@ -24,9 +23,8 @@ export default class Avatar extends Block {
   }
 
   render(): string {
-    const {
-      src, alt = 'Аватар', size = 'medium', className = '',
-    } = this.props;
+    const props = this.props as unknown as AvatarProps;
+    const { src, alt = 'Аватар', size = 'medium', className = '' } = props;
 
     const sizeClass = {
       small: 'avatar-small',

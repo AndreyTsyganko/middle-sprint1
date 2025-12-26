@@ -2,22 +2,31 @@ import Block from '../../Core/Block';
 import Avatar from '../../components/Avatar/Avatar';
 import FormField from '../../components/FormField/FormField';
 import Button from '../../components/Button/Button';
-
+interface UserData {
+  first_name: string;
+  second_name: string;
+  display_name: string;
+  login: string;
+  email: string;
+  phone: string;
+  avatar: string;
+}
+interface ProfileFormData {
+  email: string;
+  login: string;
+  firstName: string;
+  secondName: string;
+  displayName: string;
+  phone: string;
+  oldPassword: string;
+  newPassword: string;
+}
 interface ProfilePageProps {
-  user?: {
-    first_name: string;
-    second_name: string;
-    display_name: string;
-    login: string;
-    email: string;
-    phone: string;
-    avatar: string;
-  };
-  onSave?: (data: any) => void;
+  user?: UserData;
+  onSave?: (data: ProfileFormData) => void;
   onBack?: () => void;
   onAvatarChange?: (file: File) => void;
 }
-
 export default class ProfilePage extends Block {
   private fields: Record<string, FormField> = {};
 
@@ -109,20 +118,29 @@ export default class ProfilePage extends Block {
   }
 
   handleSave(): void {
-    const data: Record<string, string> = {};
+    const data: ProfileFormData = {
+      email: this.fields.email.getValue(),
+      login: this.fields.login.getValue(),
+      firstName: this.fields.firstName.getValue(),
+      secondName: this.fields.secondName.getValue(),
+      displayName: this.fields.displayName.getValue(),
+      phone: this.fields.phone.getValue(),
+      oldPassword: this.fields.oldPassword.getValue(),
+      newPassword: this.fields.newPassword.getValue(),
+    };
+
     let isValid = true;
 
     Object.entries(this.fields).forEach(([key, field]) => {
       const value = field.getValue();
-      data[key] = value;
-
+      
       if (key !== 'oldPassword' && key !== 'newPassword' && !value) {
         field.setError('Это поле обязательно');
         isValid = false;
       }
     });
 
-    // Проверка паролей
+
     if ((data.oldPassword || data.newPassword) && (!data.oldPassword || !data.newPassword)) {
       if (!data.oldPassword) {
         this.fields.oldPassword.setError('Введите старый пароль');
@@ -138,24 +156,31 @@ export default class ProfilePage extends Block {
       isValid = false;
     }
 
-    if (isValid && this.props.onSave) {
-      this.props.onSave(data);
+    const typedProps = this.props as unknown as ProfilePageProps;
+    if (isValid && typedProps.onSave) {
+      typedProps.onSave(data);
     }
   }
 
   render(): string {
+    const avatar = this.props.avatar as Avatar;
+    const saveButton = this.props.saveButton as Button;
+    
+    const nonPasswordFields = Object.values(this.fields).filter((field) => {
+
+      const fieldName = (field.props as { name?: string }).name;
+      return fieldName && !fieldName.includes('Password');
+    });
+
     return `
     <main class="auth-page">
       <div class="auth-card profile-card">
         <h1 class="auth-title">Редактирование профиля</h1>
         <div class="avatar-section">
-          ${this.props.avatar.render()}
+          ${avatar.render()}
         </div>
         <form class="auth-form profile-form">
-          ${Object.values(this.fields)
-    .filter((field) => !field.props.name.includes('Password'))
-    .map((field) => field.render())
-    .join('')}
+          ${nonPasswordFields.map((field) => field.render()).join('')}
           
           <div class="password-section">
             <h3 class="password-title">Смена пароля</h3>
@@ -164,7 +189,7 @@ export default class ProfilePage extends Block {
           </div>
           
           <div class="profile-buttons">
-            ${this.props.saveButton.render()}
+            ${saveButton.render()}
             <a href="/chats" class="auth-link">Назад к чатам</a>
           </div>
         </form>

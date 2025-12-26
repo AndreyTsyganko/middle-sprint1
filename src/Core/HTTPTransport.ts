@@ -5,34 +5,49 @@ const METHODS = {
   DELETE: 'DELETE',
 };
 
-function queryStringify(data: Record<string, any>): string {
+function queryStringify(data: Record<string, unknown>): string {
   if (!data || typeof data !== 'object') {
     return '';
   }
 
-  const params = Object.keys(data).map((key) => `${key}=${data[key]}`).join('&');
+  const params = Object.keys(data)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(data[key]))}`)
+    .join('&');
 
   return params ? `?${params}` : '';
 }
-
+interface RequestOptions {
+  data?: unknown;
+  headers?: Record<string, string>;
+  timeout?: number;
+  method?: string;
+}
 export default class HTTPTransport {
-  get = (url: string, options: Record<string, any> = {}) => this.request(url, { ...options, method: METHODS.GET }, options.timeout);
+  get = (url: string, options: RequestOptions = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.GET }, options.timeout);
 
-  post = (url: string, options: Record<string, any> = {}) => this.request(url, { ...options, method: METHODS.POST }, options.timeout);
+  post = (url: string, options: RequestOptions = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.POST }, options.timeout);
 
-  put = (url: string, options: Record<string, any> = {}) => this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
+  put = (url: string, options: RequestOptions = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
 
-  delete = (url: string, options: Record<string, any> = {}) => this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
+  delete = (url: string, options: RequestOptions = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
 
-  request = (url: string, options: Record<string, any> = {}, timeout = 5000) => {
+  request = (
+    url: string, 
+    options: RequestOptions = {}, 
+    timeout = 5000
+  ): Promise<XMLHttpRequest> => {
     const { method = METHODS.GET, data, headers = {} } = options;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
       let requestUrl = url;
-      if (method === METHODS.GET && data) {
-        const query = queryStringify(data);
+      if (method === METHODS.GET && data && typeof data === 'object') {
+        const query = queryStringify(data as Record<string, unknown>);
         if (query) {
           requestUrl += query;
         }
@@ -60,7 +75,7 @@ export default class HTTPTransport {
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(JSON.stringify(data));
       } else {
-        xhr.send(data);
+        xhr.send(data as XMLHttpRequestBodyInit);
       }
     });
   };

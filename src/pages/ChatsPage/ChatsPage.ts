@@ -1,7 +1,6 @@
 import Block from '../../Core/Block';
 import ChatItem from '../../components/ChatItem/ChatItem';
 import Message from '../../components/Message/Message';
-
 interface Chat {
   id: number;
   title: string;
@@ -10,7 +9,6 @@ interface Chat {
   time: string;
   unreadCount?: number;
 }
-
 interface ChatsPageProps {
   chats: Chat[];
   messages: Array<{
@@ -23,7 +21,6 @@ interface ChatsPageProps {
   onProfileClick?: () => void;
   onChatSelect?: (chatId: number) => void;
 }
-
 export default class ChatsPage extends Block {
   constructor(props: ChatsPageProps) {
     const chatItems = (props.chats || []).map((chat) => new ChatItem({
@@ -37,50 +34,53 @@ export default class ChatsPage extends Block {
       ...props,
       chatItems,
       messageComponents,
+      events: {
+        click: (event: Event) => {
+          const target = event.target as HTMLElement;
+          if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
+            this.handleSendMessage();
+          }
+          if (target.id === 'goToProfile' || target.closest('#goToProfile')) {
+            event.preventDefault();
+            const typedProps = this.props as unknown as ChatsPageProps;
+            if (typedProps.onProfileClick) {
+              typedProps.onProfileClick();
+            }
+          }
+        },
+        keypress: (event: KeyboardEvent) => {
+          if (event.key === 'Enter' && (event.target as HTMLElement).id === 'message') {
+            this.handleSendMessage();
+          }
+        }
+      }
     });
   }
 
-  componentDidMount(): void {
-    this.setupEventListeners();
-  }
-
-  setupEventListeners(): void {
+  private handleSendMessage(): void {
     const messageInput = this.element?.querySelector('#message') as HTMLInputElement;
-    const sendButton = this.element?.querySelector('#sendMessage');
-    const goToProfile = this.element?.querySelector('#goToProfile');
-
-    if (messageInput && sendButton) {
-      const handleSend = () => {
-        const text = messageInput.value.trim();
-        if (text && this.props.onSendMessage) {
-          this.props.onSendMessage(text);
+    if (messageInput) {
+      const text = messageInput.value.trim();
+      if (text) {
+        const typedProps = this.props as unknown as ChatsPageProps;
+        if (typedProps.onSendMessage) {
+          typedProps.onSendMessage(text);
           messageInput.value = '';
         }
-      };
-
-      sendButton.addEventListener('click', handleSend);
-      messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSend();
-      });
-    }
-
-    if (goToProfile && this.props.onProfileClick) {
-      goToProfile.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.props.onProfileClick!();
-      });
+      }
     }
   }
 
   render(): string {
-    const { chatItems = [], messageComponents = [] } = this.props;
+    const chatItems = (this.props.chatItems as ChatItem[]) || [];
+    const messageComponents = (this.props.messageComponents as Message[]) || [];
 
     return `
     <main class="chats-page">
       <div class="chats-container">
         <aside class="chats-sidebar">
           <div class="sidebar-header">
-            <a href="/profile" class="profile-link">Профиль ></a>
+            <a href="/profile" id="goToProfile" class="profile-link">Профиль ></a>
             <div class="search-container">
               <input type="text" class="search-input" placeholder="Поиск">
             </div>
@@ -121,3 +121,4 @@ export default class ChatsPage extends Block {
   `;
   }
 }
+

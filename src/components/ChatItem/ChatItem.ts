@@ -1,5 +1,4 @@
 import Block from '../../Core/Block';
-
 interface ChatItemProps {
   id: number;
   title: string;
@@ -9,7 +8,6 @@ interface ChatItemProps {
   unreadCount?: number;
   onClick?: (id: number) => void;
 }
-
 export default class ChatItem extends Block {
   constructor(props: ChatItemProps) {
     super('div', {

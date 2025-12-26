@@ -2,8 +2,18 @@ import Block from '../../Core/Block';
 import FormField from '../../components/FormField/FormField';
 import Button from '../../components/Button/Button';
 
+interface RegisterFormData {
+  email: string;
+  login: string;
+  firstName: string;
+  secondName: string;
+  phone: string;
+  password: string;
+  passwordConfirm: string;
+}
+
 interface RegisterPageProps {
-  onRegister?: (data: any) => void;
+  onRegister?: (data: RegisterFormData) => void;
 }
 
 export default class RegisterPage extends Block {
@@ -93,47 +103,69 @@ export default class RegisterPage extends Block {
   }
 
   handleRegister(): void {
-    if (!this.fields) {
-      console.error('Fields not initialized');
-      return;
-    }
+  if (!this.fields) {
+    console.error('Fields not initialized');
+    return;
+  }
 
-    const data: Record<string, string> = {};
-    let isValid = true;
+  const data: RegisterFormData = {
+    email: this.fields.email.getValue(),
+    login: this.fields.login.getValue(),
+    firstName: this.fields.firstName.getValue(),
+    secondName: this.fields.secondName.getValue(),
+    phone: this.fields.phone.getValue(),
+    password: this.fields.password.getValue(),
+    passwordConfirm: this.fields.passwordConfirm.getValue(),
+  };
 
-    Object.entries(this.fields).forEach(([key, field]) => {
-      const value = field.getValue();
-      data[key] = value;
+  let isValid = true;
 
-      if (!value || value.trim() === '') {
-        field.setError('Это поле обязательно');
-        isValid = false;
-      }
-    });
+  Object.values(this.fields).forEach((field) => {
+    const value = field.getValue();
 
-    if (data.password !== data.passwordConfirm) {
-      this.fields.passwordConfirm.setError('Пароли не совпадают');
+    if (!value || value.trim() === '') {
+      field.setError('Это поле обязательно');
       isValid = false;
     }
+  });
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (data.email && !emailRegex.test(data.email)) {
-      this.fields.email.setError('Не корректный email');
-      isValid = false;
-    }
+  if (data.password !== data.passwordConfirm) {
+    this.fields.passwordConfirm.setError('Пароли не совпадают');
+    isValid = false;
+  }
 
-    if (data.password && data.password.length < 8) {
-      this.fields.password.setError('Пароль должен быть не менее 8 символов');
-      isValid = false;
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (data.email && !emailRegex.test(data.email)) {
+    this.fields.email.setError('Не корректный email');
+    isValid = false;
+  }
 
-    if (isValid && this.props.onRegister) {
-      this.props.onRegister(data);
+  if (data.password && data.password.length < 8) {
+    this.fields.password.setError('Пароль должен быть не менее 8 символов');
+    isValid = false;
+  }
+
+  if (isValid) {
+    const onRegister = (this.props as any).onRegister as 
+      ((data: RegisterFormData) => void) | undefined;
+    
+    if (onRegister) {
+      onRegister(data);
     }
   }
+}
 
   render(): string {
     const { fields } = this;
+
+    const emailField = this.props.emailField as FormField;
+    const loginField = this.props.loginField as FormField;
+    const firstNameField = this.props.firstNameField as FormField;
+    const secondNameField = this.props.secondNameField as FormField;
+    const phoneField = this.props.phoneField as FormField;
+    const passwordField = this.props.passwordField as FormField;
+    const passwordConfirmField = this.props.passwordConfirmField as FormField;
+    const registerButton = this.props.registerButton as Button;
 
     if (!fields) {
       return `
@@ -141,14 +173,14 @@ export default class RegisterPage extends Block {
           <div class="auth-card">
             <h1 class="auth-title">Регистрация</h1>
             <form class="auth-form">
-              ${this.props.emailField?.render() || ''}
-              ${this.props.loginField?.render() || ''}
-              ${this.props.firstNameField?.render() || ''}
-              ${this.props.secondNameField?.render() || ''}
-              ${this.props.phoneField?.render() || ''}
-              ${this.props.passwordField?.render() || ''}
-              ${this.props.passwordConfirmField?.render() || ''}
-              ${this.props.registerButton?.render() || ''}
+              ${emailField?.render() || ''}
+              ${loginField?.render() || ''}
+              ${firstNameField?.render() || ''}
+              ${secondNameField?.render() || ''}
+              ${phoneField?.render() || ''}
+              ${passwordField?.render() || ''}
+              ${passwordConfirmField?.render() || ''}
+              ${registerButton?.render() || ''}
             </form>
             <a href="/login" class="auth-link">Войти</a>
           </div>
@@ -168,7 +200,7 @@ export default class RegisterPage extends Block {
             ${fields.phone.render()}
             ${fields.password.render()}
             ${fields.passwordConfirm.render()}
-            ${this.props.registerButton?.render() || ''}
+            ${registerButton?.render() || ''}
           </form>
           <a href="/login" class="auth-link">Войти</a>
         </div>

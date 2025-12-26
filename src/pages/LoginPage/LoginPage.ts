@@ -1,12 +1,10 @@
 import Block from '../../Core/Block';
 import FormField from '../../components/FormField/FormField';
 import Button from '../../components/Button/Button';
-
 interface LoginPageProps {
   onLogin?: (data: { login: string; password: string }) => void;
   onRegister?: () => void;
 }
-
 export default class LoginPage extends Block {
   private loginField: FormField;
 
@@ -68,20 +66,25 @@ export default class LoginPage extends Block {
       isValid = false;
     }
 
-    if (isValid && this.props.onLogin) {
-      this.props.onLogin({ login, password });
+    const typedProps = this.props as unknown as LoginPageProps;
+    if (isValid && typedProps.onLogin) {
+      typedProps.onLogin({ login, password });
     }
   }
 
   render(): string {
+    const loginField = this.props.loginField as FormField;
+    const passwordField = this.props.passwordField as FormField;
+    const loginButton = this.props.loginButton as Button;
+
     return `
     <main class="auth-page">
       <div class="auth-card">
         <h1 class="auth-title">Вход</h1>
         <form class="auth-form">
-          ${this.props.loginField.render()}
-          ${this.props.passwordField.render()}
-          ${this.props.loginButton.render()}
+          ${loginField.render()}
+          ${passwordField.render()}
+          ${loginButton.render()}
         </form>
         <a href="/register" class="auth-link">Нет аккаунта?</a>
       </div>

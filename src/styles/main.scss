@@ -12,13 +12,11 @@ $link-color: #5b5252;
   box-sizing: border-box;
 }
 
-
 body {
   font-family: Arial, sans-serif;
   background: $background-color; 
   min-height: 100vh;
 }
-
 
 .auth-page {
   display: flex;
@@ -606,4 +604,3 @@ body {
 .avatar-input {
   display: none;
 }
-

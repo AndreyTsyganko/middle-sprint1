@@ -3,13 +3,16 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
 import ChatsPage from './pages/ChatsPage/ChatsPage';
-
+interface LoginData {
+  login: string;
+  password: string;
+}
 class SimpleApp {
-  private currentPage: any = null;
+  private currentPage: LoginPage | RegisterPage | ProfilePage | ChatsPage | null = null;
 
   constructor() {
     this.handleInitialRoute();
-
+    
     this.setupLinkNavigation();
 
     window.addEventListener('popstate', () => {
@@ -21,7 +24,6 @@ class SimpleApp {
   private handleInitialRoute(): void {
     const path = window.location.pathname;
     console.log('Initial path:', path);
-
     this.showPageByPath(path);
   }
 
@@ -50,7 +52,7 @@ class SimpleApp {
 
   private showLoginPage(): void {
     const page = new LoginPage({
-      onLogin: (data: any) => {
+      onLogin: (data: LoginData) => {
         console.log('Login:', data);
         window.history.pushState({}, '', '/chats');
         this.showChatsPage();
@@ -66,7 +68,7 @@ class SimpleApp {
 
   private showRegisterPage(): void {
     const page = new RegisterPage({
-      onRegister: (data: any) => {
+      onRegister: (data: unknown) => {
         console.log('Register:', data);
         window.history.pushState({}, '', '/chats');
         this.showChatsPage();
@@ -87,7 +89,7 @@ class SimpleApp {
         phone: '+7 (999) 123-45-67',
         avatar: '/ui/BMW 1.jpg',
       },
-      onSave: (data: any) => {
+      onSave: (data: unknown) => {
         console.log('Save profile:', data);
         alert('Профиль сохранен!');
       },
@@ -213,7 +215,7 @@ class SimpleApp {
     this.renderPage(page);
   }
 
-  private renderPage(page: any): void {
+  private renderPage(page: LoginPage | RegisterPage | ProfilePage | ChatsPage): void {
     if (this.currentPage) {
       this.currentPage.hide();
     }
@@ -245,7 +247,7 @@ class SimpleApp {
         const path = url.pathname;
 
         window.history.pushState({}, '', path);
-
+        
         this.showPageByPath(path);
       }
     });
