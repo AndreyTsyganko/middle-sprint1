@@ -1,0 +1,71 @@
+<main class="chats-page">
+  <div class="chats-container">
+    <aside class="chats-sidebar">
+      <div class="sidebar-header">
+        <a href="#" class="profile-link" id="goToProfile">Профиль ></a>
+        <div class="search-container">
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="Поиск"
+          >
+        </div>
+      </div>
+
+      <div class="chats-list">
+        {{#each chats}}
+        <div class="chat-item" data-chat-id="{{id}}">
+          <div class="chat-avatar">
+            <img src="{{avatar}}" alt="{{title}}" class="chat-avatar-img">
+          </div>
+          <div class="chat-info">
+            <div class="chat-title">{{title}}</div>
+            <div class="chat-last-message">{{lastMessage}}</div>
+          </div>
+          <div class="chat-meta">
+            <div class="chat-time">{{time}}</div>
+            {{#if unreadCount}}
+            <div class="unread-badge">{{unreadCount}}</div>
+            {{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </aside>
+
+    <section class="chat-area">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-header-avatar">
+            <img src="{{currentChat.avatar}}" alt="{{currentChat.title}}" class="header-avatar-img">
+          </div>
+          <div class="chat-header-title">{{currentChat.title}}</div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="action-button" title="Действия">⋮</button>
+        </div>
+      </div>
+
+      <div class="messages-container" id="messagesContainer">
+        {{#each messages}}
+        <div class="message {{#if isMine}}message-mine{{else}}message-theirs{{/if}}">
+          <div class="message-content">{{content}}</div>
+          <div class="message-time">{{time}}</div>
+        </div>
+        {{/each}}
+      </div>
+
+      <div class="message-input-area">
+        <button class="attach-button" title="Прикрепить файл">📎</button>
+        <input 
+          type="text" 
+          class="message-input" 
+          id="message" 
+          name="message" 
+          placeholder="Сообщение"
+        >
+        <button class="send-button" id="sendMessage">→</button>
+      </div>
+    </section>
+  </div>
+</main>
