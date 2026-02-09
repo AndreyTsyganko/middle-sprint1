@@ -1,14 +1,16 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+import HTTPTransport from '../Core/HTTPTransport';
+
+const API_BASE_URL = '/api/v2';
 
 class ApiClient {
-  private baseUrl: string;
+  private http: HTTPTransport;
 
   constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl;
+    this.http = new HTTPTransport(baseUrl);
   }
 
-  private getHeaders(): HeadersInit {
-    const headers: HeadersInit = {
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
@@ -20,41 +22,57 @@ class ApiClient {
     return headers;
   }
 
-  private async handleResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-      const text = await response.text();
+  private async handleResponse<T>(xhr: XMLHttpRequest): Promise<T> {
+    console.log('Response status:', xhr.status);
+    console.log('Response text:', xhr.responseText);
+    
+    if (xhr.status < 200 || xhr.status >= 300) {
       let errorData;
-      
       try {
-        errorData = JSON.parse(text);
+        if (xhr.responseText) {
+          errorData = JSON.parse(xhr.responseText);
+        } else {
+          errorData = { reason: 'Empty response' };
+        }
       } catch {
-        errorData = { reason: text || response.statusText || 'Unknown error' };
+        errorData = { reason: xhr.responseText || xhr.statusText || 'Unknown error' };
       }
-      
-      throw new Error(errorData.reason || `HTTP ${response.status}`);
+      console.error('API Error:', errorData);
+      throw new Error(errorData.reason || `HTTP ${xhr.status}`);
+    }
+
+    if (xhr.responseText === 'OK' || xhr.responseText.trim() === 'OK') {
+      return { token: 'login-success' } as T;
     }
 
     try {
-      return await response.json();
-    } catch {
+      if (xhr.responseText) {
+        return JSON.parse(xhr.responseText);
+      }
       return {} as T;
+    } catch (error) {
+      console.error('JSON parse error:', error, 'on text:', xhr.responseText);
+      if (xhr.status === 200) {
+        return { token: 'server-success' } as T;
+      }
+      throw new Error('Wrong json format');
     }
   }
 
-
   async login(login: string, password: string): Promise<{ token: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/login`, {
-      method: 'POST',
+    console.log('API login called with:', { login, password: password ? '***' : 'empty' });
+    
+    const response = await this.http.post('/auth/signin', {
+      data: { login, password },
       headers: this.getHeaders(),
-      body: JSON.stringify({ login, password }),
     });
 
     const result = await this.handleResponse<{ token: string }>(response);
     
-
-    if (result.token) {
-      localStorage.setItem('authToken', result.token);
-    }
+    console.log('Login result:', result);
+    
+    localStorage.setItem('authToken', result.token || 'login-success');
+    console.log('Token saved to localStorage');
     
     return result;
   }
@@ -67,10 +85,11 @@ class ApiClient {
     password: string;
     phone: string;
   }): Promise<{ id: number }> {
-    const response = await fetch(`${this.baseUrl}/auth/register`, {
-      method: 'POST',
+    console.log('API register called with data:', { ...data, password: '***' });
+    
+    const response = await this.http.post('/auth/signup', {
+      data,
       headers: this.getHeaders(),
-      body: JSON.stringify(data),
     });
 
     return this.handleResponse<{ id: number }>(response);
@@ -78,21 +97,17 @@ class ApiClient {
 
   async logout(): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/auth/logout`, {
-        method: 'POST',
+      const response = await this.http.post('/auth/logout', {
         headers: this.getHeaders(),
       });
-
       await this.handleResponse<void>(response);
     } finally {
       localStorage.removeItem('authToken');
     }
   }
 
-
   async getUser(): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/user`, {
-      method: 'GET',
+    const response = await this.http.get('/auth/user', {
       headers: this.getHeaders(),
     });
 
@@ -107,10 +122,9 @@ class ApiClient {
     email: string;
     phone: string;
   }): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/user/profile`, {
-      method: 'PUT',
+    const response = await this.http.put('/user/profile', {
+      data,
       headers: this.getHeaders(),
-      body: JSON.stringify(data),
     });
 
     return this.handleResponse(response);
@@ -121,44 +135,39 @@ class ApiClient {
     formData.append('avatar', file);
 
     const token = localStorage.getItem('authToken');
-    const headers: HeadersInit = {};
+    const headers: Record<string, string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${this.baseUrl}/user/avatar`, {
-      method: 'POST',
+    const response = await this.http.post('/user/avatar', {
+      data: formData,
       headers,
-      body: formData,
     });
 
     return this.handleResponse(response);
   }
 
   async updatePassword(oldPassword: string, newPassword: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/user/password`, {
-      method: 'PUT',
+    const response = await this.http.put('/user/password', {
+      data: { oldPassword, newPassword },
       headers: this.getHeaders(),
-      body: JSON.stringify({ oldPassword, newPassword }),
     });
 
     return this.handleResponse<void>(response);
   }
 
   async searchUsers(login: string): Promise<any[]> {
-    const response = await fetch(`${this.baseUrl}/user/search`, {
-      method: 'POST',
+    const response = await this.http.post('/user/search', {
+      data: { login },
       headers: this.getHeaders(),
-      body: JSON.stringify({ login }),
     });
 
     return this.handleResponse<any[]>(response);
   }
 
-
   async getChats(): Promise<any[]> {
-    const response = await fetch(`${this.baseUrl}/chats`, {
-      method: 'GET',
+    const response = await this.http.get('/chats', {
       headers: this.getHeaders(),
     });
     
@@ -166,18 +175,16 @@ class ApiClient {
   }
 
   async createChat(title: string): Promise<{ id: number }> {
-    const response = await fetch(`${this.baseUrl}/chats`, {
-      method: 'POST',
+    const response = await this.http.post('/chats', {
+      data: { title },
       headers: this.getHeaders(),
-      body: JSON.stringify({ title }),
     });
 
     return this.handleResponse<{ id: number }>(response);
   }
 
   async getChatUsers(chatId: number): Promise<any[]> {
-    const response = await fetch(`${this.baseUrl}/chats/${chatId}/users`, {
-      method: 'GET',
+    const response = await this.http.get(`/chats/${chatId}/users`, {
       headers: this.getHeaders(),
     });
 
@@ -185,28 +192,25 @@ class ApiClient {
   }
 
   async addUsersToChat(chatId: number, users: number[]): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/chats/${chatId}/users`, {
-      method: 'POST',
+    const response = await this.http.post(`/chats/${chatId}/users`, {
+      data: { users },
       headers: this.getHeaders(),
-      body: JSON.stringify({ users }),
     });
 
     return this.handleResponse<void>(response);
   }
 
   async deleteUsersFromChat(chatId: number, users: number[]): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/chats/${chatId}/users`, {
-      method: 'DELETE',
+    const response = await this.http.delete(`/chats/${chatId}/users`, {
+      data: { users },
       headers: this.getHeaders(),
-      body: JSON.stringify({ users }),
     });
 
     return this.handleResponse<void>(response);
   }
 
   async getToken(chatId: number): Promise<{ token: string }> {
-    const response = await fetch(`${this.baseUrl}/chats/${chatId}/token`, {
-      method: 'GET',
+    const response = await this.http.get(`/chats/${chatId}/token`, {
       headers: this.getHeaders(),
     });
 
@@ -214,8 +218,8 @@ class ApiClient {
   }
 
   async getMessages(chatId: number): Promise<any[]> {
-    const response = await fetch(`${this.baseUrl}/chats/${chatId}/messages`, {
-      method: 'GET',
+    const response = await this.http.get(`/chats/${chatId}/messages`, {
+      data: { limit: 20 },
       headers: this.getHeaders(),
     });
 
@@ -223,15 +227,13 @@ class ApiClient {
   }
 
   async sendMessage(chatId: number, content: string): Promise<any> {
-    const response = await fetch(`${this.baseUrl}/chats/${chatId}/messages`, {
-      method: 'POST',
+    const response = await this.http.post(`/chats/${chatId}/messages`, {
+      data: { content },
       headers: this.getHeaders(),
-      body: JSON.stringify({ content }),
     });
 
     return this.handleResponse(response);
   }
-
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('authToken');

@@ -41,8 +41,8 @@ export default class RegisterPage extends Block {
     const phoneField = new FormField({
       label: 'Телефон',
       name: 'phone',
-      placeholder: '+7 (999) 123-45-67',
-      required: false,
+      placeholder: '+79999999999',
+      required: true,
     });
 
     const passwordField = new FormField({
@@ -127,78 +127,121 @@ export default class RegisterPage extends Block {
     }
   }
 
-  async handleRegister(): Promise<void> {
-    console.log('Кнопка регистрации нажата!');
+async handleRegister(): Promise<void> {
+  console.log('Кнопка регистрации нажата!');
+  
+  const getFieldValue = (name: string): string => {
+    const input = this.element?.querySelector(`[name="${name}"]`) as HTMLInputElement;
+    return input?.value || '';
+  };
+  
+  const firstName = getFieldValue('first_name');
+  const secondName = getFieldValue('second_name');
+  const login = getFieldValue('login');
+  const email = getFieldValue('email');
+  const password = getFieldValue('password');
+  const passwordConfirm = getFieldValue('password_confirm');
+  const phone = getFieldValue('phone');
+  
+  console.log('Данные формы:', { 
+    firstName, 
+    secondName, 
+    login, 
+    email, 
+    password: password ? '***' : 'empty',
+    phone 
+  });
+  
+  const requiredFields = [
+    { name: 'first_name', value: firstName, label: 'Имя' },
+    { name: 'second_name', value: secondName, label: 'Фамилия' },
+    { name: 'login', value: login, label: 'Логин' },
+    { name: 'email', value: email, label: 'Почта' },
+    { name: 'password', value: password, label: 'Пароль' },
+    { name: 'phone', value: phone, label: 'Телефон' },
+  ];
+  
+  const missingFields = requiredFields
+    .filter(field => !field.value?.trim())
+    .map(field => field.label);
+  
+  if (missingFields.length > 0) {
+    alert(`Заполните обязательные поля: ${missingFields.join(', ')}`);
+    return;
+  }
+  
+  if (password !== passwordConfirm) {
+    alert('Пароли не совпадают');
+    return;
+  }
+  
+  if (password.length < 6) {
+    alert('Пароль должен быть не менее 6 символов');
+    return;
+  }
+  
+  try {
+    console.log('Отправка данных на сервер...');
     
-    const getFieldValue = (name: string): string => {
-      const input = this.element?.querySelector(`[name="${name}"]`) as HTMLInputElement;
-      return input?.value || '';
-    };
-    
-    const formData = {
-      first_name: getFieldValue('first_name'),
-      second_name: getFieldValue('second_name'),
-      login: getFieldValue('login'),
-      email: getFieldValue('email'),
-      password: getFieldValue('password'),
-      password_confirm: getFieldValue('password_confirm'),
-      phone: getFieldValue('phone'),
-    };
-    
-    console.log('Данные формы:', { ...formData, password: '***', password_confirm: '***' });
-    
-    if (!formData.first_name || !formData.second_name || !formData.login || 
-        !formData.email || !formData.password || !formData.password_confirm) {
-      alert('Заполните все обязательные поля');
-      return;
+    const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
+    if (button) {
+      button.textContent = 'Регистрация...';
+      button.disabled = true;
     }
     
-    if (formData.password !== formData.password_confirm) {
-      alert('Пароли не совпадают');
-      return;
+    const dataToSend = {
+      first_name: firstName.trim(),
+      second_name: secondName.trim(),
+      login: login.trim(),
+      email: email.trim(),
+      password: password,
+      phone: phone.trim(),
+    };
+    
+    console.log('Данные для API:', { ...dataToSend, password: '***' });
+    
+    const response = await api.register(dataToSend);
+    
+    console.log('Регистрация успешна:', response);
+    
+    alert('Регистрация успешна! Теперь войдите в систему.');
+    
+    if (window.appRouter) {
+      window.appRouter.go('/');
+    } else {
+      window.location.href = '/';
     }
     
-    try {
-      console.log('Отправка данных на сервер...');
-      
-      const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
-      if (button) {
-        button.textContent = 'Регистрация...';
-        button.disabled = true;
-      }
-      
-      const response = await api.register({
-        first_name: formData.first_name,
-        second_name: formData.second_name,
-        login: formData.login,
-        email: formData.email,
-        password: formData.password,
-        phone: formData.phone,
-      });
-      
-      console.log('Регистрация успешна:', response);
-      
-
-      const loginResponse = await api.login(formData.login, formData.password);
-      console.log('Вход успешен:', loginResponse);
-      
-      if (window.appRouter) {
-        window.appRouter.go('/messenger');
-      } else {
-        window.location.href = '/messenger';
-      }
-      
-    } catch (error: any) {
-      console.error('Ошибка:', error);
-      alert(error.message || 'Ошибка регистрации');
-      
-      const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
-      if (button) {
-        button.textContent = 'Зарегистрироваться';
-        button.disabled = false;
-      }
+  } catch (error: any) {
+    console.error('Ошибка регистрации:', error);
+    
+    let errorMessage = 'Ошибка регистрации';
+    if (error.message && error.message.includes('400')) {
+      errorMessage = 'Некорректные данные. Проверьте:\n' +
+        '- Email должен быть валидным\n' +
+        '- Логин должен быть от 3 символов\n' +
+        '- Имя и фамилия должны содержать только буквы\n' +
+        '- Телефон должен быть в формате +79999999999\n' +
+        '- Пароль должен быть не менее 6 символов';
+    } else if (error.message && error.message.includes('409')) {
+      errorMessage = 'Пользователь с таким логином или email уже существует';
+    } else if (error.message === 'Wrong json format') {
+      errorMessage = 'Ошибка формата данных. Проверьте введенные значения.';
+    } else if (error.message === 'Not found') {
+      errorMessage = 'Endpoint не найден. Проверьте URL API.';
+    } else {
+      errorMessage = error.message || 'Ошибка регистрации';
+    }
+    
+    alert(errorMessage);
+    
+    const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
+    if (button) {
+      button.textContent = 'Зарегистрироваться';
+      button.disabled = false;
     }
   }
+}
 
   handleLoginClick(): void {
     console.log('Переход на страницу входа');

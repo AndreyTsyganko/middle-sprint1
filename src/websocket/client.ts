@@ -1,114 +1,371 @@
+import HTTPTransport from '../Core/HTTPTransport';
 
-export default class ChatWebSocket {
-  private socket: WebSocket | null = null;
-  private listeners: Map<string, Function[]> = new Map();
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  
-  constructor(private chatId: number, private token: string) {
-    this.connect();
+interface UserData {
+  id: number;
+  first_name: string;
+  second_name: string;
+  display_name: string;
+  login: string;
+  email: string;
+  phone: string;
+  avatar: string;
+}
+
+interface Chat {
+  id: number;
+  title: string;
+  avatar: string;
+  created_by: number;
+  last_message?: {
+    content: string;
+    time: string;
+    user: UserData;
+  };
+  unread_count: number;
+}
+
+interface Message {
+  id: number;
+  user_id: number;
+  chat_id: number;
+  content: string;
+  time: string;
+  is_read: boolean;
+  type: string;
+}
+
+class ApiClient {
+  private http: HTTPTransport;
+
+  constructor() {
+    // ✅ Полный базовый URL передается в конструктор HTTPTransport
+    this.http = new HTTPTransport('https://ya-praktikum.tech/api/v2');
   }
-  
-  private connect(): void {
-    const wsUrl = `ws://localhost:3000/ws/chats/${this.chatId}?token=${this.token}`;
-    
+
+  private getHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return headers;
+  }
+
+  private async handleResponse<T>(response: XMLHttpRequest): Promise<T> {
+    if (response.status < 200 || response.status >= 300) {
+      let errorData;
+      try {
+        errorData = JSON.parse(response.responseText);
+      } catch {
+        errorData = { reason: response.responseText || response.statusText || 'Unknown error' };
+      }
+      
+      throw new Error(errorData.reason || `HTTP ${response.status}`);
+    }
+
     try {
-      this.socket = new WebSocket(wsUrl);
-      
-      this.socket.onopen = () => {
-        console.log(`WebSocket connected to chat ${this.chatId}`);
-        this.reconnectAttempts = 0;
-        this.emit('open');
-      };
-      
-      this.socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.emit('message', data);
-        } catch (error) {
-          console.error('Failed to parse message:', error);
-        }
-      };
-      
-      this.socket.onclose = (event) => {
-        console.log(`WebSocket disconnected: ${event.code} ${event.reason}`);
-        this.emit('close', event);
-        
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-          this.reconnectAttempts++;
-          
-          console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-          
-          setTimeout(() => {
-            if (this.socket?.readyState !== WebSocket.OPEN) {
-              this.connect();
-            }
-          }, delay);
-        }
-      };
-      
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        this.emit('error', error);
-      };
-      
-    } catch (error) {
-      console.error('Failed to create WebSocket:', error);
+      return JSON.parse(response.responseText) as T;
+    } catch {
+      return {} as T;
     }
   }
-  
-  sendMessage(content: string): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      const message = {
-        type: 'message',
-        content: content.trim()
-      };
-      this.socket.send(JSON.stringify(message));
-    } else {
-      console.error('WebSocket is not connected');
+
+  async login(login: string, password: string): Promise<UserData> {
+    try {
+      console.log('API login called:', login);
+      
+      const response = await this.http.post('/auth/signin', {
+        data: { login, password },
+        headers: this.getHeaders(),
+      });
+
+      await this.handleResponse<any>(response);
+      
+      const user = await this.getUser();
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('authChecked', 'true');
+      localStorage.setItem('authToken', 'dummy-token');
+      
+      console.log('Login successful, user data saved');
+      return user;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error;
     }
   }
-  
-  sendTyping(): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ type: 'typing' }));
+
+  async register(data: {
+    first_name: string;
+    second_name: string;
+    login: string;
+    email: string;
+    password: string;
+    phone: string;
+  }): Promise<{ id: number }> {
+    try {
+      console.log('API register called with:', { ...data, password: '***' });
+      
+      const response = await this.http.post('/auth/signup', {
+        data,
+        headers: this.getHeaders(),
+      });
+
+      const result = await this.handleResponse<{ id: number }>(response);
+      
+      console.log('Registration successful, auto-login...');
+      
+      try {
+        const user = await this.login(data.login, data.password);
+        console.log('Auto-login after registration successful');
+        return { id: user.id, ...result };
+      } catch (loginError) {
+        console.log('Auto-login failed:', loginError);
+        return result;
+      }
+    } catch (error: any) {
+      console.error('Register error:', error);
+      throw error;
     }
   }
-  
-  on(event: string, callback: Function): void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
+
+  async logout(): Promise<void> {
+    try {
+      const response = await this.http.post('/auth/logout', {
+        headers: this.getHeaders(),
+      });
+
+      await this.handleResponse<void>(response);
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      throw error;
+    } finally {
+      localStorage.removeItem('user');
+      localStorage.removeItem('authToken');
+      localStorage.setItem('authChecked', 'true');
     }
-    this.listeners.get(event)!.push(callback);
   }
-  
-  off(event: string, callback: Function): void {
-    const listeners = this.listeners.get(event);
-    if (listeners) {
-      const index = listeners.indexOf(callback);
-      if (index > -1) {
-        listeners.splice(index, 1);
+
+  async getUser(): Promise<UserData> {
+    try {
+      const response = await this.http.get('/auth/user', {
+        headers: this.getHeaders(),
+      });
+
+      const user = await this.handleResponse<UserData>(response);
+      localStorage.setItem('user', JSON.stringify(user));
+      return user;
+    } catch (error: any) {
+      console.error('Get user error:', error);
+      localStorage.removeItem('user');
+      throw error;
+    }
+  }
+
+  async updateProfile(data: {
+    first_name: string;
+    second_name: string;
+    display_name: string;
+    login: string;
+    email: string;
+    phone: string;
+  }): Promise<UserData> {
+    try {
+      const response = await this.http.put('/user/profile', {
+        data,
+        headers: this.getHeaders(),
+      });
+
+      const updatedUser = await this.handleResponse<UserData>(response);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error: any) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  }
+
+  async updateAvatar(file: File): Promise<UserData> {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const headers: Record<string, string> = {};
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await this.http.put('/user/profile/avatar', {
+        data: formData,
+        headers,
+      });
+
+      const updatedUser = await this.handleResponse<UserData>(response);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    } catch (error: any) {
+      console.error('Update avatar error:', error);
+      throw error;
+    }
+  }
+
+  async updatePassword(oldPassword: string, newPassword: string): Promise<void> {
+    try {
+      const response = await this.http.put('/user/password', {
+        data: { oldPassword, newPassword },
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<void>(response);
+    } catch (error: any) {
+      console.error('Update password error:', error);
+      throw error;
+    }
+  }
+
+  async searchUsers(login: string): Promise<UserData[]> {
+    try {
+      const response = await this.http.post('/user/search', {
+        data: { login },
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<UserData[]>(response);
+    } catch (error: any) {
+      console.error('Search users error:', error);
+      throw error;
+    }
+  }
+
+  async getChats(): Promise<Chat[]> {
+    try {
+      const response = await this.http.get('/chats', {
+        headers: this.getHeaders(),
+      });
+      
+      return this.handleResponse<Chat[]>(response);
+    } catch (error: any) {
+      console.error('Get chats error:', error);
+      throw error;
+    }
+  }
+
+  async createChat(title: string): Promise<{ id: number }> {
+    try {
+      const response = await this.http.post('/chats', {
+        data: { title },
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<{ id: number }>(response);
+    } catch (error: any) {
+      console.error('Create chat error:', error);
+      throw error;
+    }
+  }
+
+  async getChatUsers(chatId: number): Promise<UserData[]> {
+    try {
+      const response = await this.http.get(`/chats/${chatId}/users`, {
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<UserData[]>(response);
+    } catch (error: any) {
+      console.error('Get chat users error:', error);
+      throw error;
+    }
+  }
+
+  async addUsersToChat(chatId: number, userIds: number[]): Promise<void> {
+    try {
+      const response = await this.http.put('/chats/users', {
+        data: { users: userIds, chatId },
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<void>(response);
+    } catch (error: any) {
+      console.error('Add users to chat error:', error);
+      throw error;
+    }
+  }
+
+  async deleteUsersFromChat(chatId: number, userIds: number[]): Promise<void> {
+    try {
+      const response = await this.http.delete('/chats/users', {
+        data: { users: userIds, chatId },
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<void>(response);
+    } catch (error: any) {
+      console.error('Delete users from chat error:', error);
+      throw error;
+    }
+  }
+
+  async getToken(chatId: number): Promise<{ token: string }> {
+    try {
+      const response = await this.http.post(`/chats/token/${chatId}`, {
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<{ token: string }>(response);
+    } catch (error: any) {
+      console.error('Get token error:', error);
+      throw error;
+    }
+  }
+
+  async getMessages(chatId: number, offset: number = 0, limit: number = 20): Promise<Message[]> {
+    try {
+      const response = await this.http.get(`/chats/${chatId}/messages?offset=${offset}&limit=${limit}`, {
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<Message[]>(response);
+    } catch (error: any) {
+      console.error('Get messages error:', error);
+      throw error;
+    }
+  }
+
+  async sendMessage(chatId: number, content: string): Promise<Message> {
+    try {
+      const response = await this.http.post(`/chats/${chatId}/messages`, {
+        data: { content },
+        headers: this.getHeaders(),
+      });
+
+      return this.handleResponse<Message>(response);
+    } catch (error: any) {
+      console.error('Send message error:', error);
+      throw error;
+    }
+  }
+
+  isAuthenticated(): boolean {
+    const user = localStorage.getItem('user');
+    const authChecked = localStorage.getItem('authChecked') === 'true';
+    return authChecked && !!user;
+  }
+
+  getCurrentUser(): UserData | null {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr) as UserData;
+      } catch {
+        return null;
       }
     }
-  }
-  
-  private emit(event: string, data?: any): void {
-    const listeners = this.listeners.get(event);
-    if (listeners) {
-      listeners.forEach(callback => callback(data));
-    }
-  }
-  
-  close(): void {
-    if (this.socket) {
-      this.socket.onclose = null; 
-      this.socket.close();
-      this.socket = null;
-    }
-  }
-  
-  get readyState(): number {
-    return this.socket?.readyState || WebSocket.CLOSED;
+    return null;
   }
 }
+
+export const api = new ApiClient();

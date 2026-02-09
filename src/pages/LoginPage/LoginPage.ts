@@ -35,10 +35,6 @@ export default class LoginPage extends Block {
         text: 'Войти',
         type: 'button',
         className: 'auth-button',
-        onClick: (event: Event) => {
-          event.preventDefault();
-          this.handleLogin();
-        },
       }),
     });
 
@@ -49,60 +45,49 @@ export default class LoginPage extends Block {
   async handleLogin(): Promise<void> {
     console.log('=== START handleLogin ===');
     
-    const login = this.loginField.getValue();
-    const password = this.passwordField.getValue();
+    const loginInput = this.element?.querySelector('input[name="login"]') as HTMLInputElement;
+    const passwordInput = this.element?.querySelector('input[name="password"]') as HTMLInputElement;
+    const loginBtn = this.element?.querySelector('#loginBtn') as HTMLButtonElement;
+    
+    const login = loginInput?.value?.trim();
+    const password = passwordInput?.value?.trim();
 
-    console.log('Inputs:', { login, password: password ? '***' : 'empty' });
+    console.log('DOM values:', { login, password: password ? '***' : 'empty' });
 
-
-    if (!login.trim()) {
-      this.loginField.setError('Введите логин');
+    if (!login) {
+      this.loginField?.setError('Введите логин');
       return;
     }
 
-    if (!password.trim()) {
-      this.passwordField.setError('Введите пароль');
+    if (!password) {
+      this.passwordField?.setError('Введите пароль');
       return;
     }
 
     try {
-      this.props.loginButton.setProps({ text: 'Вход...', disabled: true });
+      loginBtn.textContent = 'Вход...';
+      loginBtn.disabled = true;
       
-      console.log('Calling api.login...');
-      
+      console.log('Calling api.login с логином:', login);
       const result = await api.login(login, password);
       console.log('API login result:', result);
       
-      const savedToken = localStorage.getItem('authToken');
-      console.log('Token in localStorage:', savedToken ? 'YES' : 'NO');
-      
-      if (!savedToken) {
-        throw new Error('Токен не был сохранен');
-      }
-      
-      console.log(' Login successful! Redirecting to /messenger');
-      
-      if (window.appRouter) {
-        console.log('Using router...');
-        window.appRouter.go('/messenger');
-      } 
-      else {
-        console.log('Using direct redirect...');
-        window.location.href = '/messenger';
-      }
+      console.log('Login successful! Redirecting to /messenger');
       
       setTimeout(() => {
-        if (window.location.pathname !== '/messenger') {
-          console.log('Fallback redirect...');
+        if (window.appRouter) {
+          window.appRouter.go('/messenger');
+        } else {
           window.location.href = '/messenger';
         }
-      }, 300);
+      }, 100);
       
     } catch (error: any) {
       console.error('Login error:', error);
-      this.passwordField.setError(error.message || 'Ошибка входа');
+      this.passwordField?.setError(error.message || 'Ошибка входа');
     } finally {
-      this.props.loginButton.setProps({ text: 'Войти', disabled: false });
+      loginBtn.textContent = 'Войти';
+      loginBtn.disabled = false;
     }
   }
 
@@ -117,15 +102,15 @@ export default class LoginPage extends Block {
     <main class="auth-page">
       <div class="auth-card">
         <h1 class="auth-title">Вход</h1>
-        <div class="auth-form"> <!-- Важно: div вместо form! -->
-          ${this.props.loginField.render()}
-          ${this.props.passwordField.render()}
-          ${this.props.loginButton.render()}
+        <div class="auth-form">
+          ${this.props.loginField!.render()}
+          ${this.props.passwordField!.render()}
+          <button class="auth-button" type="button" id="loginBtn">Войти</button>
         </div>
         <a href="/sign-up" class="auth-link" id="registerLink">Нет аккаунта?</a>
       </div>
     </main>
-  `;
+    `;
   }
 
   componentDidMount(): void {
@@ -134,6 +119,16 @@ export default class LoginPage extends Block {
       if (window.appRouter) {
         window.appRouter.go('/messenger');
       }
+      return;
+    }
+    
+    const loginBtn = this.element?.querySelector('#loginBtn');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        console.log('*** КНОПКА НАЖАТА ***');
+        this.handleLogin();
+      });
     }
     
     const registerLink = this.element?.querySelector('#registerLink');

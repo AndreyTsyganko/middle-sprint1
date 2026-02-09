@@ -14,6 +14,14 @@ interface Chat {
   unread_count?: number;
 }
 
+interface ChatUser {
+  id: number;
+  first_name: string;
+  second_name: string;
+  login: string;
+  avatar: string;
+}
+
 interface ChatsPageProps {
   onSendMessage?: (message: string) => void;
   onChatSelect?: (chatId: number) => void;
@@ -22,13 +30,9 @@ interface ChatsPageProps {
 export default class ChatsPage extends Block {
   private chats: Chat[] = [];
   private selectedChatId: number | null = null;
-  private messages: Array<{
-    id: number;
-    content: string;
-    time: string;
-    isMine: boolean;
-    user_id: number;
-  }> = [];
+  private messages: any[] = [];
+  private chatUsersList: ChatUser[] = [];
+  private currentUser: any = null;
 
   constructor(props: ChatsPageProps = {}) {
     super('div', {
@@ -37,7 +41,17 @@ export default class ChatsPage extends Block {
       messageComponents: [],
     });
 
+    this.loadCurrentUser();
     this.loadChats();
+  }
+
+  async loadCurrentUser(): Promise<void> {
+    try {
+      this.currentUser = await api.getUser();
+      console.log('Current user loaded:', this.currentUser);
+    } catch (error: any) {
+      console.error('Failed to load current user:', error.message);
+    }
   }
 
   async loadChats(): Promise<void> {
@@ -50,11 +64,12 @@ export default class ChatsPage extends Block {
       }
 
       this.chats = await api.getChats();
+      console.log('Chats loaded:', this.chats);
       
       const chatItems = this.chats.map((chat) => new ChatItem({
         id: chat.id,
         title: chat.title,
-        avatar: chat.avatar || '/ui/BMW 1.jpg',
+        avatar: chat.avatar || '/ui/default-avatar.jpg',
         lastMessage: chat.last_message?.content || 'Нет сообщений',
         time: this.formatTime(chat.last_message?.time),
         unreadCount: chat.unread_count,
@@ -66,23 +81,25 @@ export default class ChatsPage extends Block {
       if (this.chats.length > 0 && !this.selectedChatId) {
         this.handleChatSelect(this.chats[0].id);
       }
-    } catch (error) {
-      console.error('Failed to load chats:', error);
-      alert('Ошибка загрузки чатов');
+    } catch (error: any) {
+      console.error('Failed to load chats:', error.message);
+      alert('Ошибка загрузки чатов: ' + error.message);
     }
   }
 
   async handleChatSelect(chatId: number): Promise<void> {
-    this.selectedChatId = chatId;
-    
     try {
-      const messages = await api.getMessages(chatId);
+      this.selectedChatId = chatId;
       
-      const currentUser = await api.getUser();
+      await this.loadChatUsers(chatId);
+      
+      const messages = await api.getMessages(chatId);
+      console.log(`Loaded ${messages.length} messages for chat ${chatId}`);
+      
       const messageComponents = messages.map((msg: any) => new Message({
         content: msg.content,
         time: this.formatTime(msg.time),
-        isMine: msg.user_id === currentUser.id,
+        isMine: msg.user_id === this.currentUser?.id,
       }));
 
       this.messages = messages;
@@ -96,8 +113,83 @@ export default class ChatsPage extends Block {
       if (this.props.onChatSelect) {
         this.props.onChatSelect(chatId);
       }
-    } catch (error) {
-      console.error('Failed to load messages:', error);
+    } catch (error: any) {
+      console.error('Failed to load chat data:', error.message);
+      alert('Ошибка загрузки чата: ' + error.message);
+    }
+  }
+
+  async loadChatUsers(chatId: number): Promise<void> {
+    try {
+      this.chatUsersList = await api.getChatUsers(chatId);
+      console.log(`Loaded ${this.chatUsersList.length} users for chat ${chatId}`);
+    } catch (error: any) {
+      console.error('Failed to load chat users:', error.message);
+    }
+  }
+
+  async handleAddUserToChat(): Promise<void> {
+    if (!this.selectedChatId) {
+      alert('Выберите чат');
+      return;
+    }
+
+    const login = prompt('Введите логин пользователя для добавления:');
+    if (!login) return;
+
+    try {
+      const users = await api.searchUsers(login);
+      if (users.length === 0) {
+        alert('Пользователь не найден');
+        return;
+      }
+
+      const user = users[0];
+      const confirmAdd = confirm(`Добавить пользователя ${user.login} (${user.first_name} ${user.second_name}) в чат?`);
+      
+      if (confirmAdd) {
+        await api.addUsersToChat(this.selectedChatId!, [user.id]);
+        alert('Пользователь добавлен в чат');
+        
+        await this.loadChatUsers(this.selectedChatId!);
+      }
+    } catch (error: any) {
+      console.error('Failed to add user to chat:', error.message);
+      alert('Ошибка добавления пользователя: ' + error.message);
+    }
+  }
+
+  async handleRemoveUserFromChat(): Promise<void> {
+    if (!this.selectedChatId || this.chatUsersList.length === 0) {
+      alert('Выберите чат с пользователями');
+      return;
+    }
+
+    const userList = this.chatUsersList
+      .map(user => `${user.login} (${user.first_name} ${user.second_name})`)
+      .join('\n');
+    
+    const userLogin = prompt(`Введите логин пользователя для удаления:\n\nДоступные пользователи:\n${userList}`);
+    if (!userLogin) return;
+
+    const userToRemove = this.chatUsersList.find(user => user.login === userLogin);
+    if (!userToRemove) {
+      alert('Пользователь не найден в чате');
+      return;
+    }
+
+    const confirmRemove = confirm(`Удалить пользователя ${userToRemove.login} из чата?`);
+    
+    if (confirmRemove) {
+      try {
+        await api.deleteUsersFromChat(this.selectedChatId!, [userToRemove.id]);
+        alert('Пользователь удален из чата');
+        
+        await this.loadChatUsers(this.selectedChatId!);
+      } catch (error: any) {
+        console.error('Failed to remove user from chat:', error.message);
+        alert('Ошибка удаления пользователя: ' + error.message);
+      }
     }
   }
 
@@ -111,6 +203,7 @@ export default class ChatsPage extends Block {
     const text = messageInput?.value.trim();
 
     if (!text) {
+      alert('Сообщение не может быть пустым');
       return;
     }
 
@@ -122,7 +215,7 @@ export default class ChatsPage extends Block {
         content: text,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isMine: true,
-        user_id: 1,
+        user_id: this.currentUser?.id || 0,
       };
 
       this.messages.push(newMessage);
@@ -140,9 +233,9 @@ export default class ChatsPage extends Block {
       }
 
       await this.loadChats();
-    } catch (error) {
-      console.error('Failed to send message:', error);
-      alert('Ошибка отправки сообщения');
+    } catch (error: any) {
+      console.error('Failed to send message:', error.message);
+      alert('Ошибка отправки сообщения: ' + error.message);
     }
   }
 
@@ -188,9 +281,9 @@ export default class ChatsPage extends Block {
       await api.createChat(title);
       alert('Чат успешно создан!');
       await this.loadChats();
-    } catch (error) {
-      console.error('Failed to create chat:', error);
-      alert('Ошибка создания чата');
+    } catch (error: any) {
+      console.error('Failed to create chat:', error.message);
+      alert('Ошибка создания чата: ' + error.message);
     }
   }
 
@@ -203,10 +296,11 @@ export default class ChatsPage extends Block {
     const sendButton = this.element?.querySelector('#sendMessage');
     const profileLink = this.element?.querySelector('.profile-link');
     const createChatButton = this.element?.querySelector('#createChat');
+    const addUserButton = this.element?.querySelector('#addUserToChat');
+    const removeUserButton = this.element?.querySelector('#removeUserFromChat');
 
     if (messageInput && sendButton) {
       const handleSend = () => this.handleSendMessage();
-
       sendButton.addEventListener('click', handleSend);
       messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleSend();
@@ -224,6 +318,20 @@ export default class ChatsPage extends Block {
       createChatButton.addEventListener('click', (e) => {
         e.preventDefault();
         this.handleCreateChat();
+      });
+    }
+
+    if (addUserButton) {
+      addUserButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleAddUserToChat();
+      });
+    }
+
+    if (removeUserButton) {
+      removeUserButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleRemoveUserFromChat();
       });
     }
   }
@@ -250,11 +358,15 @@ export default class ChatsPage extends Block {
           <div class="chat-header">
             <div class="chat-header-info">
               <div class="chat-header-avatar">
-                <img src="/ui/BMW 1.jpg" alt="Чат" class="header-avatar-img">
+                <img src="/ui/default-avatar.jpg" alt="Чат" class="header-avatar-img">
               </div>
               <div class="chat-header-title">Выберите чат</div>
             </div>
             <div class="chat-header-actions">
+              ${this.selectedChatId ? `
+                <button class="action-button" id="addUserToChat" title="Добавить пользователя">+👤</button>
+                <button class="action-button" id="removeUserFromChat" title="Удалить пользователя">-👤</button>
+              ` : ''}
               <button class="action-button" title="Действия">⋮</button>
             </div>
           </div>
