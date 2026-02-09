@@ -1,56 +1,55 @@
 import Block from '../../Core/Block';
 import FormField from '../../components/FormField/FormField';
-import Button from '../../components/Button/Button';
+import { api } from '../../Api/Client';
 
 interface RegisterPageProps {
   onRegister?: (data: any) => void;
 }
 
 export default class RegisterPage extends Block {
-  private fields: Record<string, FormField>;
+  constructor(props: RegisterPageProps = {}) {
 
-  constructor(props: RegisterPageProps) {
     const emailField = new FormField({
       label: 'Почта',
       name: 'email',
       type: 'email',
-      placeholder: 'Введите email',
+      placeholder: 'test@mail.ru',
       required: true,
     });
 
     const loginField = new FormField({
       label: 'Логин',
       name: 'login',
-      placeholder: 'Введите логин',
+      placeholder: 'testuser',
       required: true,
     });
 
     const firstNameField = new FormField({
       label: 'Имя',
       name: 'first_name',
-      placeholder: 'Введите имя',
+      placeholder: 'Иван',
       required: true,
     });
 
     const secondNameField = new FormField({
       label: 'Фамилия',
       name: 'second_name',
-      placeholder: 'Введите фамилию',
+      placeholder: 'Иванов',
       required: true,
     });
 
     const phoneField = new FormField({
       label: 'Телефон',
       name: 'phone',
-      placeholder: '+7 (XXX) XXX-XX-XX',
-      required: true,
+      placeholder: '+7 (999) 123-45-67',
+      required: false,
     });
 
     const passwordField = new FormField({
       label: 'Пароль',
       name: 'password',
       type: 'password',
-      placeholder: 'Введите пароль',
+      placeholder: 'Password123',
       required: true,
     });
 
@@ -58,19 +57,9 @@ export default class RegisterPage extends Block {
       label: 'Повторите пароль',
       name: 'password_confirm',
       type: 'password',
-      placeholder: 'Повторите пароль',
+      placeholder: 'Password123',
       required: true,
     });
-
-    const fields = {
-      email: emailField,
-      login: loginField,
-      firstName: firstNameField,
-      secondName: secondNameField,
-      phone: phoneField,
-      password: passwordField,
-      passwordConfirm: passwordConfirmField,
-    };
 
     super('div', {
       ...props,
@@ -81,98 +70,142 @@ export default class RegisterPage extends Block {
       phoneField,
       passwordField,
       passwordConfirmField,
-      registerButton: new Button({
-        text: 'Зарегистрироваться',
-        type: 'submit',
-        className: 'auth-button',
-        onClick: () => this.handleRegister(),
-      }),
     });
-
-    this.fields = fields;
-  }
-
-  handleRegister(): void {
-    if (!this.fields) {
-      console.error('Fields not initialized');
-      return;
-    }
-
-    const data: Record<string, string> = {};
-    let isValid = true;
-
-    Object.entries(this.fields).forEach(([key, field]) => {
-      const value = field.getValue();
-      data[key] = value;
-
-      if (!value || value.trim() === '') {
-        field.setError('Это поле обязательно');
-        isValid = false;
-      }
-    });
-
-    if (data.password !== data.passwordConfirm) {
-      this.fields.passwordConfirm.setError('Пароли не совпадают');
-      isValid = false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (data.email && !emailRegex.test(data.email)) {
-      this.fields.email.setError('Не корректный email');
-      isValid = false;
-    }
-
-    if (data.password && data.password.length < 8) {
-      this.fields.password.setError('Пароль должен быть не менее 8 символов');
-      isValid = false;
-    }
-
-    if (isValid && this.props.onRegister) {
-      this.props.onRegister(data);
-    }
   }
 
   render(): string {
-    const { fields } = this;
-
-    if (!fields) {
-      return `
-        <main class="auth-page">
-          <div class="auth-card">
-            <h1 class="auth-title">Регистрация</h1>
-            <form class="auth-form">
-              ${this.props.emailField?.render() || ''}
-              ${this.props.loginField?.render() || ''}
-              ${this.props.firstNameField?.render() || ''}
-              ${this.props.secondNameField?.render() || ''}
-              ${this.props.phoneField?.render() || ''}
-              ${this.props.passwordField?.render() || ''}
-              ${this.props.passwordConfirmField?.render() || ''}
-              ${this.props.registerButton?.render() || ''}
-            </form>
-            <a href="/login" class="auth-link">Войти</a>
-          </div>
-        </main>
-      `;
-    }
-
     return `
       <main class="auth-page">
         <div class="auth-card">
           <h1 class="auth-title">Регистрация</h1>
-          <form class="auth-form">
-            ${fields.email.render()}
-            ${fields.login.render()}
-            ${fields.firstName.render()}
-            ${fields.secondName.render()}
-            ${fields.phone.render()}
-            ${fields.password.render()}
-            ${fields.passwordConfirm.render()}
-            ${this.props.registerButton?.render() || ''}
+          
+          <form class="auth-form" id="registerForm">
+            <div class="form-row">
+              ${this.props.firstNameField.render()}
+              ${this.props.secondNameField.render()}
+            </div>
+            
+            ${this.props.loginField.render()}
+            ${this.props.emailField.render()}
+            ${this.props.phoneField.render()}
+            
+            <div class="form-row">
+              ${this.props.passwordField.render()}
+              ${this.props.passwordConfirmField.render()}
+            </div>
+            
+            <button type="button" class="auth-button" id="registerButton">
+              Зарегистрироваться
+            </button>
           </form>
-          <a href="/login" class="auth-link">Войти</a>
+          
+          <a href="#" class="auth-link" id="loginLink">
+            Уже есть аккаунт? Войти
+          </a>
         </div>
       </main>
     `;
+  }
+
+  componentDidMount(): void {
+    console.log('RegisterPage mounted');
+    
+    const registerButton = this.element?.querySelector('#registerButton');
+    if (registerButton) {
+      registerButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleRegister();
+      });
+    }
+    
+    const loginLink = this.element?.querySelector('#loginLink');
+    if (loginLink) {
+      loginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.handleLoginClick();
+      });
+    }
+  }
+
+  async handleRegister(): Promise<void> {
+    console.log('Кнопка регистрации нажата!');
+    
+    const getFieldValue = (name: string): string => {
+      const input = this.element?.querySelector(`[name="${name}"]`) as HTMLInputElement;
+      return input?.value || '';
+    };
+    
+    const formData = {
+      first_name: getFieldValue('first_name'),
+      second_name: getFieldValue('second_name'),
+      login: getFieldValue('login'),
+      email: getFieldValue('email'),
+      password: getFieldValue('password'),
+      password_confirm: getFieldValue('password_confirm'),
+      phone: getFieldValue('phone'),
+    };
+    
+    console.log('Данные формы:', { ...formData, password: '***', password_confirm: '***' });
+    
+    if (!formData.first_name || !formData.second_name || !formData.login || 
+        !formData.email || !formData.password || !formData.password_confirm) {
+      alert('Заполните все обязательные поля');
+      return;
+    }
+    
+    if (formData.password !== formData.password_confirm) {
+      alert('Пароли не совпадают');
+      return;
+    }
+    
+    try {
+      console.log('Отправка данных на сервер...');
+      
+      const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
+      if (button) {
+        button.textContent = 'Регистрация...';
+        button.disabled = true;
+      }
+      
+      const response = await api.register({
+        first_name: formData.first_name,
+        second_name: formData.second_name,
+        login: formData.login,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+      });
+      
+      console.log('Регистрация успешна:', response);
+      
+
+      const loginResponse = await api.login(formData.login, formData.password);
+      console.log('Вход успешен:', loginResponse);
+      
+      if (window.appRouter) {
+        window.appRouter.go('/messenger');
+      } else {
+        window.location.href = '/messenger';
+      }
+      
+    } catch (error: any) {
+      console.error('Ошибка:', error);
+      alert(error.message || 'Ошибка регистрации');
+      
+      const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
+      if (button) {
+        button.textContent = 'Зарегистрироваться';
+        button.disabled = false;
+      }
+    }
+  }
+
+  handleLoginClick(): void {
+    console.log('Переход на страницу входа');
+    if (window.appRouter) {
+      window.appRouter.go('/');
+    } else {
+      window.location.href = '/';
+    }
   }
 }

@@ -18,6 +18,8 @@ export default class Block {
 
   props: Props;
 
+  private _events: Record<string, EventListener> = {};
+
   constructor(tagName = 'div', props: Props = {}) {
     const eventBus = new EventBus();
     this._meta = { tagName, props };
@@ -79,7 +81,12 @@ export default class Block {
   private _render(): void {
     const block = this.render();
     if (this._element && typeof block === 'string') {
+
+      this._unbindEvents();
+      
       this._element.innerHTML = block;
+      
+      this._bindEvents();
     }
   }
 
@@ -115,6 +122,27 @@ export default class Block {
     return document.createElement(tagName);
   }
 
+  private _bindEvents(): void {
+    if (this.props.events && this._element) {
+      Object.entries(this.props.events).forEach(([eventName, listener]) => {
+        if (listener && typeof listener === 'function') {
+          this._events[eventName] = listener as EventListener;
+          this._element!.addEventListener(eventName, listener as EventListener);
+        }
+      });
+    }
+  }
+
+  private _unbindEvents(): void {
+    if (this._element) {
+      Object.entries(this._events).forEach(([eventName, listener]) => {
+        this._element!.removeEventListener(eventName, listener);
+      });
+      this._events = {};
+    }
+  }
+
+
   show(): void {
     if (this._element) {
       this._element.style.display = 'block';
@@ -124,6 +152,26 @@ export default class Block {
   hide(): void {
     if (this._element) {
       this._element.style.display = 'none';
+    }
+  }
+
+  addEvent(eventName: string, listener: EventListener): void {
+    if (this._element) {
+      this._element.addEventListener(eventName, listener);
+
+      if (!this.props.events) {
+        this.props.events = {};
+      }
+      this.props.events[eventName] = listener;
+    }
+  }
+
+  removeEvent(eventName: string, listener: EventListener): void {
+    if (this._element) {
+      this._element.removeEventListener(eventName, listener);
+      if (this.props.events && this.props.events[eventName]) {
+        delete this.props.events[eventName];
+      }
     }
   }
 }

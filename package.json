@@ -23,6 +23,8 @@
     "test:watch": "jest --watch"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/jest": "^29.5.0",
     "@types/node": "^25.0.3",
     "eslint": "^8.57.1",
@@ -40,6 +42,8 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "handlebars": "^4.7.8"
   }
 }

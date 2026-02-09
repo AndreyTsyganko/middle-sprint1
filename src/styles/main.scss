@@ -607,3 +607,207 @@ body {
   display: none;
 }
 
+.create-chat-button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: $in-color;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.3s;
+  
+  &:hover {
+    background: adjust-color($in-color, $lightness: -10%);
+  }
+}
+
+
+// стили для модального окна редактирования профиля
+.delete-profile-button {
+  background: $error-color;
+  color: white;
+  margin-top: 10px;
+  
+  &:hover {
+    background: adjust-color($error-color, $lightness: -10%);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    
+    &:hover {
+      background: $error-color;
+    }
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1003;
+  padding: 20px;
+  
+  &.show {
+    display: flex;
+  }
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-title {
+  font-size: 20px;
+  color: $error-color;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.modal-text {
+  color: $black-color;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.modal-button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.cancel-button {
+  background: $gray-color;
+  color: white;
+  
+  &:hover {
+    background: adjust-color($gray-color, $lightness: -10%);
+  }
+}
+
+.delete-confirm-button {
+  background: $error-color;
+  color: white;
+  
+  &:hover {
+    background: adjust-color($error-color, $lightness: -10%);
+  }
+}
+
+.danger-zone {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid $error-color;
+}
+
+.danger-title {
+  font-size: 16px;
+  color: $error-color;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.danger-description {
+  color: $black-color;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 20px;
+}
+
+.danger-note {
+  font-size: 12px;
+  color: $error-color;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+.email-confirmation {
+  background: #fff8f8;
+  border: 1px solid #ffcccc;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+.confirmation-title {
+  font-size: 14px;
+  color: $error-color;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.confirmation-text {
+  font-size: 13px;
+  color: $black-color;
+  line-height: 1.4;
+  margin-bottom: 15px;
+}
+
+.confirmation-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ffcccc;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  
+  &:focus {
+    outline: none;
+    border-color: $error-color;
+  }
+}
+
+.deletion-message {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.deletion-icon {
+  font-size: 50px;
+  color: $error-color;
+  margin-bottom: 20px;
+}
+
+.deletion-title {
+  font-size: 24px;
+  color: $error-color;
+  margin-bottom: 10px;
+}
+
+.deletion-text {
+  color: $black-color;
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
