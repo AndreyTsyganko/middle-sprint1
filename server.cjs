@@ -34,8 +34,8 @@ app.use((req, res, next) => {
 
 app.listen(PORT, () => {
   console.log('='.repeat(50));
-  console.log(`🚀 Dev сервер запущен: http://localhost:${PORT}`);
-  console.log('📡 Проксирование API на: https://ya-praktikum.tech/api/v2');
+  console.log(`Dev сервер запущен: http://localhost:${PORT}`);
+  console.log('Проксирование API на: https://ya-praktikum.tech/api/v2');
   console.log('='.repeat(50));
 });
 

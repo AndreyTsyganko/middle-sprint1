@@ -10,7 +10,7 @@ function queryStringify(data: Record<string, any>): string {
     return '';
   }
 
-  const params = Object.keys(data).map((key) => `${key}=${data[key]}`).join('&');
+  const params = Object.keys(data).map((key) => `${key}=${encodeURIComponent(data[key])}`).join('&');
   return params ? `?${params}` : '';
 }
 
@@ -19,6 +19,7 @@ type Options = {
   data?: any;
   headers?: Record<string, string>;
   timeout?: number;
+  withCredentials?: boolean;
 };
 
 export default class HTTPTransport {
@@ -26,6 +27,7 @@ export default class HTTPTransport {
 
   constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
+    console.log('HTTPTransport initialized with baseUrl:', baseUrl);
   }
 
   private getFullUrl(url: string): string {
@@ -45,7 +47,12 @@ export default class HTTPTransport {
     this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
 
   request = (url: string, options: Options = {}, timeout = 5000): Promise<XMLHttpRequest> => {
-    const { method = METHODS.GET, data, headers = {} } = options;
+    const { 
+      method = METHODS.GET, 
+      data, 
+      headers = {},
+      withCredentials = true 
+    } = options;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -61,11 +68,20 @@ export default class HTTPTransport {
 
       xhr.open(method, requestUrl);
 
-      xhr.withCredentials = true; 
+      xhr.withCredentials = withCredentials;
       
+      console.log(`HTTPTransport: ${method} ${fullUrl}`, {
+        withCredentials: xhr.withCredentials,
+        hasData: !!data
+      });
+      
+      // Таймаут
       if (timeout) {
         xhr.timeout = timeout;
-        xhr.ontimeout = () => reject(new Error(`Request timeout after ${timeout}ms`));
+        xhr.ontimeout = () => {
+          console.error(`HTTPTransport: Request timeout after ${timeout}ms`);
+          reject(new Error(`Request timeout after ${timeout}ms`));
+        };
       }
 
       Object.keys(headers).forEach((key) => {
@@ -73,29 +89,35 @@ export default class HTTPTransport {
       });
 
       xhr.onload = () => {
-        console.log(`HTTP ${method} ${url}: ${xhr.status}`);
+        console.log(`HTTPTransport: ${method} ${url} - Status: ${xhr.status}`);
+        
+
+        if (xhr.status === 401) {
+          console.error('HTTP 401 Unauthorized - Cookie issue');
+          console.log('Response headers:', xhr.getAllResponseHeaders());
+        }
+
         resolve(xhr);
       };
       
       xhr.onerror = () => {
-        console.error(`HTTP ${method} ${url}: Network error`);
+        console.error(`HTTPTransport: Network error for ${method} ${url}`);
         reject(new Error('Network error'));
       };
+
+      xhr.ontimeout = () => {
+        console.error(`HTTPTransport: Timeout for ${method} ${url}`);
+        reject(new Error('Request timeout'));
+      };
+
 
       if (method === METHODS.GET || !data) {
         xhr.send();
       } else if (data instanceof FormData) {
         xhr.send(data);
       } else {
-        if (!headers['Content-Type'] && !headers['content-type']) {
-          xhr.setRequestHeader('Content-Type', 'application/json');
-        }
-        
-        let dataToSend = data;
-        if (typeof data !== 'string' && !(data instanceof FormData)) {
-          dataToSend = JSON.stringify(data);
-        }
-        console.log('Sending:', dataToSend);
+        const dataToSend = typeof data === 'string' ? data : JSON.stringify(data);
+        console.log('HTTPTransport: Sending data:', dataToSend);
         xhr.send(dataToSend);
       }
     });

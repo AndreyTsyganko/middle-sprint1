@@ -30,8 +30,8 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log('='.repeat(50));
-  console.log(`🚀 Сервер запущен: http://localhost:${PORT}`);
-  console.log(`📡 API прокси: http://localhost:${PORT}/api/v2 -> https://ya-praktikum.tech/api/v2`);
+  console.log(`Сервер запущен: http://localhost:${PORT}`);
+  console.log(`API прокси: http://localhost:${PORT}/api/v2 -> https://ya-praktikum.tech/api/v2`);
   console.log('='.repeat(50));
   console.log('Убедись, что в client.ts установлен правильный BASE_URL:');
   console.log(`const BASE_URL = 'http://localhost:${PORT}/api/v2';`);

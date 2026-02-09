@@ -1,6 +1,6 @@
 import HTTPTransport from '../Core/HTTPTransport';
 
-const API_BASE_URL = '/api/v2';
+const API_BASE_URL = 'https://ya-praktikum.tech/api/v2';
 
 class ApiClient {
   private http: HTTPTransport;
@@ -10,16 +10,9 @@ class ApiClient {
   }
 
   private getHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
+    return {
       'Content-Type': 'application/json',
     };
-
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
   }
 
   private async handleResponse<T>(xhr: XMLHttpRequest): Promise<T> {
@@ -71,8 +64,8 @@ class ApiClient {
     
     console.log('Login result:', result);
     
-    localStorage.setItem('authToken', result.token || 'login-success');
-    console.log('Token saved to localStorage');
+    localStorage.setItem('authToken', 'authenticated');
+    console.log('Login status saved (cookies set by server)');
     
     return result;
   }
@@ -134,15 +127,8 @@ class ApiClient {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    const token = localStorage.getItem('authToken');
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await this.http.post('/user/avatar', {
       data: formData,
-      headers,
     });
 
     return this.handleResponse(response);

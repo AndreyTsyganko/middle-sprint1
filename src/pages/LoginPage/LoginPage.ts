@@ -72,7 +72,7 @@ export default class LoginPage extends Block {
       const result = await api.login(login, password);
       console.log('API login result:', result);
       
-      console.log('Login successful! Redirecting to /messenger');
+      console.log('Login successful! Cookies set by server. Redirecting to /messenger');
       
       setTimeout(() => {
         if (window.appRouter) {
