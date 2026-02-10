@@ -38,4 +38,3 @@ app.listen(PORT, () => {
   console.log('Проксирование API на: https://ya-praktikum.tech/api/v2');
   console.log('='.repeat(50));
 });
-

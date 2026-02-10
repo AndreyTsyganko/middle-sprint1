@@ -163,7 +163,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    console.log('🔥 API updateAvatar → PUT /user/profile/avatar');
+    console.log('API updateAvatar → PUT /user/profile/avatar');
     console.log('Файл:', file.name, file.size, 'bytes');
     console.log('Токен:', localStorage.getItem('authToken') ? 'есть' : 'НЕТ!');
 

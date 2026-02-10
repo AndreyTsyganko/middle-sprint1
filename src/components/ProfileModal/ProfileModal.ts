@@ -11,42 +11,53 @@ interface ProfileModalProps {
 }
 
 export default class ProfileModal extends Block {
+  private isDataLoaded = false;
   private isUploading = false;
   private currentUser: any = null;
   private pendingAvatarFile: File | null = null;
 
   constructor(props: ProfileModalProps = {}) {
+    const globalUser = (window as any).store?.get('user');
+    const userData = globalUser || props.user || {};
+    
     super('div', {
       ...props,
-      avatar: (props.user || {}).avatar || '/ui/default-avatar.jpg',
-      first_name: (props.user || {}).first_name || '',
-      second_name: (props.user || {}).second_name || '',
-      display_name: (props.user || {}).display_name || '',
-      login: (props.user || {}).login || '',
-      email: (props.user || {}).email || '',
-      phone: (props.user || {}).phone || ''
+      avatar: userData.avatar || '/ui/default-avatar.jpg',
+      first_name: userData.first_name || '',
+      second_name: userData.second_name || '',
+      display_name: userData.display_name || '',
+      login: userData.login || '',
+      email: userData.email || '',
+      phone: userData.phone || ''
     });
     
-    this.currentUser = { ...(props.user || {}) };
+    this.currentUser = { ...userData };
   }
 
   componentDidMount(): void {
     console.log('ProfileModal mounted');
+    console.log('currentUser:', this.currentUser?.avatar);
+    console.log('props.user:', this.props.user?.avatar);
     this.bindEvents();
-    this.loadUserProfile();
+    
+    if (!this.isDataLoaded && !this.currentUser.avatar) {
+      this.loadUserProfile();
+      this.isDataLoaded = true;
+    }
   }
 
   private async loadUserProfile(): Promise<void> {
     try {
       this.currentUser = await api.getUser();
-      console.log('Загружен профиль:', this.currentUser);
+      console.log('Загружен профиль с сервера:', this.currentUser);
       
       const avatarUrl = this.currentUser.avatar 
-        ? `https://ya-praktikum.tech${this.currentUser.avatar}?t=${Date.now()}` 
+        ? `https://ya-praktikum.tech/api/v2/resources${this.currentUser.avatar}?t=${Date.now()}` 
         : '/ui/default-avatar.jpg';
       
       this.currentUser = { ...this.currentUser, avatar: avatarUrl };
       this.setProps({ user: this.currentUser });
+      this.updateGlobalStore();
     } catch (error) {
       console.error('Ошибка загрузки профиля:', error);
     }
@@ -76,7 +87,7 @@ export default class ProfileModal extends Block {
       const store = (window as any).store;
       if (store && this.currentUser) {
         store.set('user', this.currentUser);
-        console.log('Store обновлен');
+        console.log('Store обновлен:', this.currentUser.avatar);
       }
     } catch (e) {
       console.log('Store недоступен');
@@ -109,7 +120,6 @@ export default class ProfileModal extends Block {
 
   handleClose(e?: Event): void {
     if (e) e.preventDefault();
-    this.pendingAvatarFile = null;
     if (this.props.onClose) this.props.onClose!();
   }
 
@@ -124,6 +134,28 @@ export default class ProfileModal extends Block {
 
   handleDeleteClick(): void {
     alert('Удаление пока не реализовано');
+  }
+
+  private updateMyAvatarGlobally(): void {
+    const myAvatarSelectors = [
+      '#avatarImage',
+      '.header-avatar-img',
+      '.profile-avatar',
+      '.user-avatar.current-user', 
+      '[data-user-id="' + (this.currentUser?.id || localStorage.getItem('userId')) + '"] img'
+    ];
+
+    myAvatarSelectors.forEach(selector => {
+      const images = document.querySelectorAll(selector);
+      images.forEach((img: Element) => {
+        const image = img as HTMLImageElement;
+        image.src = this.currentUser.avatar;
+        image.style.objectFit = 'cover';
+        image.loading = 'eager';
+      });
+    });
+
+    console.log('Обновлены МОИ аватарки:', myAvatarSelectors);
   }
 
   async handleSave(): Promise<void> {
@@ -152,52 +184,43 @@ export default class ProfileModal extends Block {
     this.isUploading = true;
 
     try {
-      console.log('Сохраняем...');
+      console.log('НАЧИНАЕМ СОХРАНЕНИЕ...');
 
-      if (hasTextChanges) await api.updateProfile(changes);
+      if (hasTextChanges) {
+        console.log('Обновляем профиль:', changes);
+        await api.updateProfile(changes);
+      }
+
       if (this.pendingAvatarFile) {
+        console.log('Отправляем аватар:', this.pendingAvatarFile.name);
         await api.updateAvatar(this.pendingAvatarFile);
         this.pendingAvatarFile = null;
       }
 
       const updatedUser = await api.getUser();
       const NEW_AVATAR_URL = updatedUser.avatar 
-        ? `https://ya-praktikum.tech${updatedUser.avatar}?t=${Date.now()}` 
+        ? `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}` 
         : '/ui/default-avatar.jpg';
 
-      console.log('🔥 НОВЫЙ АВАТАР URL:', NEW_AVATAR_URL);
-
-      const allAvatarImages = document.querySelectorAll('img');
-      allAvatarImages.forEach(img => {
-        const image = img as HTMLImageElement;
-        
-        if (image.id === 'avatarImage' || image.classList.contains('avatar-image')) {
-          image.src = NEW_AVATAR_URL;
-          image.style.objectFit = 'cover';
-          image.style.objectPosition = 'center';
-          image.loading = 'eager';
-        }
-        
-        if (image.classList.contains('header-avatar-img')) {
-          image.src = NEW_AVATAR_URL;
-          image.loading = 'eager';
-        }
-      });
+      console.log('НОВЫЙ АВАТАР URL:', NEW_AVATAR_URL);
 
       this.currentUser = { ...updatedUser, avatar: NEW_AVATAR_URL };
+      this.updateMyAvatarGlobally();
+      
       this.setProps({ user: this.currentUser });
       this.updateGlobalStore();
 
       if (this.props.onSave) {
+        console.log('Отправляем в ChatsPage:', this.currentUser.avatar);
         this.props.onSave(this.currentUser);
       }
-
-      if (this.props.onClose) {
-        this.props.onClose!();
-      }
+      
+      setTimeout(() => {
+        if (this.props.onClose) this.props.onClose!();
+      }, 100);
       
     } catch (error: any) {
-      console.error('Ошибка:', error);
+      console.error('Ошибка сохранения:', error);
       alert('❌ ' + (error.reason || error.message || 'Ошибка сервера'));
     } finally {
       this.isUploading = false;
@@ -208,15 +231,13 @@ export default class ProfileModal extends Block {
     const { isOpen = false } = this.props;
     if (!isOpen) return '';
 
-    const { 
-      avatar = '/ui/default-avatar.jpg', 
-      first_name = '', 
-      second_name = '', 
-      display_name = '', 
-      login = '', 
-      email = '', 
-      phone = '' 
-    } = this.props;
+    const avatar = this.currentUser?.avatar || '/ui/default-avatar.jpg';
+    const first_name = this.currentUser?.first_name || '';
+    const second_name = this.currentUser?.second_name || '';
+    const display_name = this.currentUser?.display_name || '';
+    const login = this.currentUser?.login || '';
+    const email = this.currentUser?.email || '';
+    const phone = this.currentUser?.phone || '';
 
     return `
       <div class="modal-overlay" id="profileModal" style="display: flex">

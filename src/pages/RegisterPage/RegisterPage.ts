@@ -204,7 +204,6 @@ async handleRegister(): Promise<void> {
     
     console.log('Регистрация успешна:', response);
     
-    alert('Регистрация успешна! Теперь войдите в систему.');
     
     if (window.appRouter) {
       window.appRouter.go('/');

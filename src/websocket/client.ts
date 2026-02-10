@@ -38,7 +38,6 @@ class ApiClient {
   private http: HTTPTransport;
 
   constructor() {
-    // ✅ Полный базовый URL передается в конструктор HTTPTransport
     this.http = new HTTPTransport('https://ya-praktikum.tech/api/v2');
   }
 

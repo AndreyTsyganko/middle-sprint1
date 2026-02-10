@@ -55,6 +55,12 @@ export default class ChatsPage extends Block {
     }, 0);
   }
 
+  private fixAvatarUrl(avatar: string): string {
+    if (!avatar || avatar === '/ui/default-avatar.jpg') return avatar;
+    if (avatar.includes('http')) return avatar;
+    return `https://ya-praktikum.tech/api/v2/resources${avatar}?t=${Date.now()}`;
+  }
+
   private async loadInitialData(): Promise<void> {
     await this.loadCurrentUser();
     await this.loadChats();
@@ -63,14 +69,11 @@ export default class ChatsPage extends Block {
   async loadCurrentUser(): Promise<void> {
     try {
       this.currentUser = await api.getUser();
-      
-      if (this.currentUser?.avatar) {
-        const cleanUrl = this.currentUser.avatar.replace(/(\?t=\d+)?(&t=\d+)?/, '');
-        this.currentUser.avatar = cleanUrl.includes('?') 
-          ? `${cleanUrl}&t=${Date.now()}` 
-          : `${cleanUrl}?t=${Date.now()}`;
+
+      if (this.currentUser?.avatar && !this.currentUser.avatar.includes('http')) {
+        this.currentUser.avatar = this.fixAvatarUrl(this.currentUser.avatar);
       }
-      
+
       console.log('Current user loaded for ChatsPage:', this.currentUser);
       
       if (this.currentUser?.id) {
@@ -122,7 +125,7 @@ export default class ChatsPage extends Block {
       const chatItems = this.chats.map((chat) => new ChatItem({
         id: chat.id,
         title: chat.title,
-        avatar: chat.avatar || '/ui/default-avatar.jpg',
+        avatar: this.fixAvatarUrl(chat.avatar),
         lastMessage: chat.last_message?.content || 'Нет сообщений',
         time: this.formatTime(chat.last_message?.time),
         unreadCount: chat.unread_count,
@@ -316,7 +319,6 @@ export default class ChatsPage extends Block {
 
   async handleSendMessage(): Promise<void> {
     if (!this.selectedChatId) {
-      alert('Выберите чат для отправки сообщения');
       return;
     }
 
@@ -357,7 +359,10 @@ export default class ChatsPage extends Block {
   async loadChatUsers(chatId: number): Promise<void> {
     try {
       const usersResponse = await api.getChatUsers(chatId);
-      this.chatUsersList = Array.isArray(usersResponse) ? usersResponse : [];
+      this.chatUsersList = (Array.isArray(usersResponse) ? usersResponse : []).map((user: any) => ({
+        ...user,
+        avatar: this.fixAvatarUrl(user.avatar)
+      }));
       console.log(`Loaded ${this.chatUsersList.length} users for chat ${chatId}`);
     } catch (error: any) {
       console.error('Failed to load chat users:', error.message);
@@ -367,7 +372,6 @@ export default class ChatsPage extends Block {
 
   async handleAddUserToChat(): Promise<void> {
     if (!this.selectedChatId) {
-      alert('Выберите чат');
       return;
     }
 
@@ -386,7 +390,6 @@ export default class ChatsPage extends Block {
 
       if (confirmAdd) {
         await api.addUsersToChat(this.selectedChatId!, [user.id]);
-        alert('Пользователь добавлен в чат');
         await this.loadChatUsers(this.selectedChatId!);
       }
     } catch (error: any) {
@@ -397,7 +400,6 @@ export default class ChatsPage extends Block {
 
   async handleRemoveUserFromChat(): Promise<void> {
     if (!this.selectedChatId || this.chatUsersList.length === 0) {
-      alert('Выберите чат с пользователями');
       return;
     }
 
@@ -419,7 +421,6 @@ export default class ChatsPage extends Block {
     if (confirmRemove) {
       try {
         await api.deleteUsersFromChat(this.selectedChatId!, [userToRemove.id]);
-        alert('Пользователь удален из чата');
         await this.loadChatUsers(this.selectedChatId!);
       } catch (error: any) {
         console.error('Failed to remove user from chat:', error.message);
@@ -477,7 +478,6 @@ export default class ChatsPage extends Block {
           
           this.updateUserAvatarGlobally();
           
-          alert('Профиль успешно обновлен');
           this.closeProfileModal();
         } catch (error: any) {
           console.error('Profile update error:', error);
@@ -497,37 +497,28 @@ export default class ChatsPage extends Block {
     this.addModalToDOM();
   }
 
-  private updateUserAvatarGlobally(): void {
-    let cleanAvatarUrl = this.currentUser?.avatar || '/ui/default-avatar.jpg';
-    cleanAvatarUrl = cleanAvatarUrl.replace(/(\?t=\d+)?(&t=\d+)?/g, '');
-    
-    const avatarUrl = cleanAvatarUrl.includes('?') 
-      ? `${cleanAvatarUrl}&t=${Date.now()}` 
-      : `${cleanAvatarUrl}?t=${Date.now()}`;
-    
-    console.log('ЧИСТЫЙ ГЛОБАЛЬНЫЙ АВАТАР URL:', avatarUrl);
+private updateUserAvatarGlobally(): void {
+  const avatarUrl = this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg');
+  console.log('АВАТАР URL:', avatarUrl);
 
-    const avatarSelectors = [
-      '.header-avatar-img', 
-      '.profile-avatar', 
-      '#avatarImage', 
-      '.avatar-image',
-      '.chat-avatar-img',
-      '.chat-item-avatar img'
-    ];
-    
-    avatarSelectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(img => {
-        const image = img as HTMLImageElement;
-        image.src = avatarUrl;
-        image.loading = 'eager';
-        image.style.objectFit = 'cover';
-        image.style.objectPosition = 'center';
-        image.decode().catch(() => {});
-        console.log('Глобально обновлен:', selector, image.src);
-      });
+  const myAvatarSelectors = [
+    '.header-avatar-img',
+    '#avatarImage',
+    `.avatar-image[data-user-id="${this.currentUser?.id}"]`,
+    `.chat-avatar-img[data-user-id="${this.currentUser?.id}"]`
+  ];
+  
+  myAvatarSelectors.forEach(selector => {
+    document.querySelectorAll(selector).forEach(img => {
+      const image = img as HTMLImageElement;
+      image.src = avatarUrl;
+      image.loading = 'eager';
+      image.style.objectFit = 'cover';
+      image.style.objectPosition = 'center';
+      console.log('Обновлена аватарка:', selector);
     });
-  }
+  });
+}
 
   private addModalToDOM(): void {
     if (!this.profileModal || !this.element) return;
@@ -636,7 +627,6 @@ export default class ChatsPage extends Block {
       console.log('API createChat called with:', { title });
       const response = await api.createChat(title);
       console.log('Chat created:', response);
-      alert('Чат успешно создан!');
       await this.loadChats();
       
       if (response.id) {
@@ -719,7 +709,10 @@ export default class ChatsPage extends Block {
           <div class="chat-header">
             <div class="chat-header-info">
               <div class="chat-header-avatar">
-                <img src="/ui/default-avatar.jpg" alt="Чат" class="header-avatar-img">
+                <img src="${this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg')}" 
+                alt="Мой аватар" 
+                class="header-avatar-img"
+                data-user-id="${this.currentUser?.id}">
               </div>
               <div class="chat-header-title">
                 ${selectedChatTitle}

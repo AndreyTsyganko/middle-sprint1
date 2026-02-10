@@ -101,13 +101,13 @@ export class Router {
 
     window.addEventListener('popstate', () => {
       const pathname = window.location.pathname;
-      console.log('🔙 Browser navigation to:', pathname);
+      console.log('Browser navigation to:', pathname);
       this._onRoute(pathname);
     });
 
 
     const initialPath = window.location.pathname;
-    console.log('📍 Initial path:', initialPath);
+    console.log('Initial path:', initialPath);
     this._onRoute(initialPath);
   }
 
@@ -164,7 +164,7 @@ export class Router {
     }
     
     if (this.currentRoute) {
-      console.log(`👋 Leaving current route: ${this.currentRoute.pathname}`);
+      console.log(`Leaving current route: ${this.currentRoute.pathname}`);
       this.currentRoute.leave();
     }
     
@@ -220,7 +220,7 @@ export class Router {
 
   private getRoute(pathname: string): Route<Block> | undefined {
     const route = this.routes.find(route => route.match(pathname));
-    console.log(`🔍 Looking for route "${pathname}": ${route ? 'found' : 'not found'}`);
+    console.log(`Looking for route "${pathname}": ${route ? 'found' : 'not found'}`);
     return route;
   }
 }
