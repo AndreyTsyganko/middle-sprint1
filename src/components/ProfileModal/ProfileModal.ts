@@ -11,8 +11,6 @@ interface ProfileModalProps {
 }
 
 export default class ProfileModal extends Block {
-  private userData: any = null; 
-
   constructor(props: ProfileModalProps = {}) {
     const user = props.user || {};
     
@@ -25,220 +23,259 @@ export default class ProfileModal extends Block {
       login: user.login || '',
       email: user.email || '',
       phone: user.phone || '',
-      userData: user,
+      showDeleteModal: false,
+      deletePassword: '',
+      deleteError: ''
     });
-
-    this.userData = user;
   }
 
   componentDidMount(): void {
-    this.loadUserData().then(() => {
-      this.bindEvents();
-    });
+    console.log('ProfileModal mounted');
+    this.bindEvents();
   }
 
   componentDidUpdate(): boolean {
-    setTimeout(() => {
-      this.bindEvents();
-    }, 0);
+    console.log('ProfileModal updated');
+    this.bindEvents();
     return true;
   }
 
-  async loadUserData(): Promise<void> {
-    try {
-      const user = await api.getUser();
-      console.log('User data loaded for modal:', user);
-      
-      this.userData = user;
-      
-      this.setProps({ 
-        ...user,
-        avatar: user.avatar || '/ui/default-avatar.jpg',
-        first_name: user.first_name || '',
-        second_name: user.second_name || '',
-        display_name: user.display_name || '',
-        login: user.login || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        userData: user,
-      });
-    } catch (error) {
-      console.error('Ошибка загрузки данных пользователя:', error);
-    }
-  }
-
   bindEvents(): void {
-    const closeBtn = this.element?.querySelector('.modal-close');
+    console.log('Binding events...');
+    
+    const closeBtn = document.querySelector('.modal-close');
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        console.log('Close button clicked');
-        if (this.props.onClose) {
-          this.props.onClose();
-        }
-      });
+      console.log('Found close button');
+      closeBtn.addEventListener('click', this.handleClose.bind(this));
     }
 
-    const modalOverlay = this.element?.querySelector('.modal-overlay');
+    const modalOverlay = document.querySelector('#profileModal .modal-overlay');
     if (modalOverlay) {
-      modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) {
-          console.log('Overlay clicked');
-          if (this.props.onClose) {
-            this.props.onClose();
-          }
-        }
-      });
+      console.log('Found modal overlay');
+      modalOverlay.addEventListener('click', this.handleOverlayClick.bind(this));
     }
 
-    const form = this.element?.querySelector('#profileForm');
+    const form = document.querySelector('#profileForm');
     if (form) {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        console.log('Form submitted');
-        this.handleSave();
-      });
+      console.log('Found form');
+      form.addEventListener('submit', this.handleFormSubmit.bind(this));
     }
 
-    const logoutBtn = this.element?.querySelector('#logoutButton');
+    const logoutBtn = document.querySelector('#logoutButton');
     if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        console.log('Logout button clicked');
-        this.handleLogout();
-      });
+      console.log('Found logout button');
+      logoutBtn.addEventListener('click', this.handleLogout.bind(this));
     }
 
-    const deleteBtn = this.element?.querySelector('#deleteProfileButton');
+    const deleteBtn = document.querySelector('#deleteProfileButton');
     if (deleteBtn) {
-      deleteBtn.addEventListener('click', () => {
-        console.log('Delete button clicked');
-        this.openDeleteModal();
-      });
+      console.log('Found delete button');
+      deleteBtn.addEventListener('click', this.handleDeleteClick.bind(this));
     }
 
-    const backLink = this.element?.querySelector('#backToChats');
+    const backLink = document.querySelector('#backToChats');
     if (backLink) {
-      backLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('Back to chats clicked');
-        if (this.props.onClose) {
-          this.props.onClose();
-        }
-      });
+      console.log('Found back link');
+      backLink.addEventListener('click', this.handleClose.bind(this));
     }
 
-    const cancelDeleteBtn = this.element?.querySelector('#cancelDelete');
-    const confirmDeleteBtn = this.element?.querySelector('#confirmDelete');
+    const cancelDeleteBtn = document.querySelector('#cancelDelete');
+    const confirmDeleteBtn = document.querySelector('#confirmDelete');
+    const deleteModalOverlay = document.querySelector('#deleteModal .modal-overlay');
     
     if (cancelDeleteBtn) {
-      cancelDeleteBtn.addEventListener('click', () => {
-        console.log('Cancel delete clicked');
-        this.closeDeleteModal();
-      });
+      cancelDeleteBtn.addEventListener('click', this.handleCancelDelete.bind(this));
     }
     
     if (confirmDeleteBtn) {
-      confirmDeleteBtn.addEventListener('click', () => {
-        console.log('Confirm delete clicked');
-        this.handleDeleteProfile();
-      });
+      confirmDeleteBtn.addEventListener('click', this.handleConfirmDelete.bind(this));
     }
+    
+    if (deleteModalOverlay) {
+      deleteModalOverlay.addEventListener('click', this.handleDeleteOverlayClick.bind(this));
+    }
+
+    const confirmPasswordInput = document.querySelector('#confirmPassword');
+    if (confirmPasswordInput) {
+      confirmPasswordInput.addEventListener('input', this.handleDeletePasswordInput.bind(this));
+    }
+  }
+
+  handleClose(e: Event): void {
+    e.preventDefault();
+    console.log('Close button clicked');
+    if (this.props.onClose) {
+      this.props.onClose();
+    }
+  }
+
+  handleOverlayClick(e: Event): void {
+    if (e.target === e.currentTarget) {
+      console.log('Overlay clicked');
+      if (this.props.onClose) {
+        this.props.onClose();
+      }
+    }
+  }
+
+  handleFormSubmit(e: Event): void {
+    e.preventDefault();
+    console.log('Form submitted');
+    this.handleSave();
+  }
+
+  handleLogout(e: Event): void {
+    e.preventDefault();
+    console.log('Logout button clicked');
+    if (this.props.onLogout) {
+      this.props.onLogout();
+    }
+  }
+
+  handleDeleteClick(e: Event): void {
+    e.preventDefault();
+    console.log('Delete button clicked');
+    this.openDeleteModal();
+  }
+
+  handleCancelDelete(e: Event): void {
+    e.preventDefault();
+    console.log('Cancel delete clicked');
+    this.closeDeleteModal();
+  }
+
+  handleConfirmDelete(e: Event): void {
+    e.preventDefault();
+    console.log('Confirm delete clicked');
+    this.handleDeleteProfile();
+  }
+
+  handleDeleteOverlayClick(e: Event): void {
+    if (e.target === e.currentTarget) {
+      console.log('Delete modal overlay clicked');
+      this.closeDeleteModal();
+    }
+  }
+
+  handleDeletePasswordInput(e: Event): void {
+    const value = (e.target as HTMLInputElement).value;
+    this.setProps({ deletePassword: value });
   }
 
   async handleSave(): Promise<void> {
     console.log('handleSave called');
     
+    const getValue = (id: string): string => {
+      const element = document.querySelector(`#${id}`) as HTMLInputElement;
+      return element?.value || '';
+    };
+    
     const formData = {
-      first_name: (this.element?.querySelector('#first_name') as HTMLInputElement)?.value || '',
-      second_name: (this.element?.querySelector('#second_name') as HTMLInputElement)?.value || '',
-      display_name: (this.element?.querySelector('#display_name') as HTMLInputElement)?.value || '',
-      login: (this.element?.querySelector('#login') as HTMLInputElement)?.value || '',
-      email: (this.element?.querySelector('#email') as HTMLInputElement)?.value || '',
-      phone: (this.element?.querySelector('#phone') as HTMLInputElement)?.value || '',
+      first_name: getValue('first_name'),
+      second_name: getValue('second_name'),
+      display_name: getValue('display_name'),
+      login: getValue('login'),
+      email: getValue('email'),
+      phone: getValue('phone'),
     };
 
     console.log('Form data to save:', formData);
-    console.log('Original user data:', this.userData);
 
-    const hasChanges = Object.keys(formData).some(key => {
+    const oldPassword = getValue('old_password');
+    const newPassword = getValue('new_password');
+    const newPasswordConfirm = getValue('new_password_confirm');
+
+    const hasProfileChanges = Object.keys(formData).some(key => {
       const newValue = formData[key as keyof typeof formData];
-      const oldValue = this.userData?.[key] || '';
+      const oldValue = this.props[key] || '';
       return newValue !== oldValue;
     });
 
-    if (!hasChanges) {
+    const hasPasswordChanges = oldPassword || newPassword || newPasswordConfirm;
+
+    if (!hasProfileChanges && !hasPasswordChanges) {
       alert('Нет изменений для сохранения');
       return;
     }
 
     try {
-      await api.updateProfile(formData);
-      alert('Профиль успешно обновлен');
-      
+      if (hasProfileChanges) {
+        await api.updateProfile(formData);
+        console.log('Profile updated');
+      }
 
-      this.userData = { ...this.userData, ...formData };
+      if (hasPasswordChanges) {
+        if (!oldPassword || !newPassword) {
+          throw new Error('Для смены пароля нужно заполнить все поля пароля');
+        }
+
+        if (newPassword !== newPasswordConfirm) {
+          throw new Error('Новые пароли не совпадают');
+        }
+
+        if (newPassword.length < 6) {
+          throw new Error('Новый пароль должен быть не менее 6 символов');
+        }
+
+        await api.updatePassword(oldPassword, newPassword);
+        console.log('Password updated');
+      }
+
+      alert('Профиль успешно обновлен');
       
       if (this.props.onSave) {
         this.props.onSave(formData);
       }
       
-      if (this.props.onClose) {
-        this.props.onClose();
-      }
     } catch (error: any) {
       console.error('Profile update error:', error);
       alert('Ошибка: ' + (error.message || 'Не удалось обновить профиль'));
     }
   }
 
-  handleLogout(): void {
-    console.log('handleLogout called');
-    if (this.props.onLogout) {
-      this.props.onLogout();
-    }
-  }
-
   openDeleteModal(): void {
     console.log('openDeleteModal called');
-    const modal = this.element?.querySelector('#deleteModal') as HTMLElement;
-    if (modal) {
-      modal.style.display = 'flex';
-    }
+    this.setProps({ 
+      showDeleteModal: true,
+      deletePassword: '',
+      deleteError: ''
+    });
   }
 
   closeDeleteModal(): void {
     console.log('closeDeleteModal called');
-    const modal = this.element?.querySelector('#deleteModal') as HTMLElement;
-    if (modal) {
-      modal.style.display = 'none';
-    }
+    this.setProps({ 
+      showDeleteModal: false,
+      deletePassword: '',
+      deleteError: ''
+    });
   }
 
   async handleDeleteProfile(): Promise<void> {
     console.log('handleDeleteProfile called');
-    const password = (this.element?.querySelector('#confirmPassword') as HTMLInputElement)?.value;
     
-    if (!password) {
-      alert('Введите пароль для подтверждения');
+    const { deletePassword } = this.props;
+    
+    if (!deletePassword) {
+      this.setProps({ deleteError: 'Введите пароль для подтверждения' });
       return;
     }
 
     try {
-      // Здесь должен быть вызов API для удаления профиля
-      // await api.deleteProfile();
-      alert('Профиль удален');
       if (this.props.onDelete) {
-        this.props.onDelete();
+        await this.props.onDelete();
       }
-    } catch (error) {
-      alert('Ошибка удаления профиля');
+    } catch (error: any) {
+      console.error('Delete profile error:', error);
+      this.setProps({ deleteError: 'Ошибка удаления профиля: ' + error.message });
     }
   }
 
   render(): string {
-    const { isOpen = false } = this.props;
+    const { isOpen = false, showDeleteModal = false, deletePassword = '', deleteError = '' } = this.props;
     
     if (!isOpen) {
-      return '<div></div>';
+      return '';
     }
 
     const { 
@@ -251,15 +288,13 @@ export default class ProfileModal extends Block {
       phone = ''
     } = this.props;
 
-    console.log('Rendering modal with data:', {
-      first_name, second_name, display_name, login, email, phone
-    });
+    const deleteModalStyle = showDeleteModal ? 'display: flex' : 'display: none';
 
     return `
       <div class="modal-overlay" id="profileModal" style="display: flex">
         <div class="modal-content">
           <button class="modal-close">✕</button>
-          <!-- Вставьте ваш profile-redact.hbs код здесь -->
+          
           <main class="auth-page">
             <div class="auth-card profile-card">
               <h1 class="auth-title">Редактирование профиля</h1>
@@ -331,17 +366,17 @@ export default class ProfileModal extends Block {
                 
                 <div class="form-field">
                   <label class="form-label" for="login">Логин</label>
-                  <input 
-                    type="text" 
-                    id="login" 
-                    name="login"
-                    class="form-input"
-                    placeholder="Введите логин"
-                    value="${login}"
-                    required
-                  >
-                  <div class="error-message" id="loginError"></div>
-                </div>
+                    <input 
+                      type="text" 
+                      id="login" 
+                      name="login"
+                      class="form-input"
+                      placeholder="Введите логин"
+                      value="${login}"
+                      required
+                    >
+                    <div class="error-message" id="loginError"></div>
+                  </div>
                 
                 <div class="form-field">
                   <label class="form-label" for="email">Почта</label>
@@ -431,7 +466,7 @@ export default class ProfileModal extends Block {
         </div>
       </div>
       
-      <div class="modal-overlay" id="deleteModal" style="display: none;">
+      <div class="modal-overlay" id="deleteModal" style="${deleteModalStyle}">
         <div class="modal-content">
           <h3 class="modal-title">Удаление профиля</h3>
           <p class="modal-text">
@@ -446,8 +481,9 @@ export default class ProfileModal extends Block {
               id="confirmPassword" 
               class="form-input"
               placeholder="Введите ваш пароль"
+              value="${deletePassword}"
             >
-            <div class="error-message" id="confirmPasswordError"></div>
+            ${deleteError ? `<div class="error-message">${deleteError}</div>` : ''}
           </div>
           
           <div class="modal-buttons">

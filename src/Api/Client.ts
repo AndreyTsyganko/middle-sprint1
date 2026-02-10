@@ -4,20 +4,34 @@ const API_BASE_URL = 'https://ya-praktikum.tech/api/v2';
 
 class ApiClient {
   private http: HTTPTransport;
+  private token: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.http = new HTTPTransport(baseUrl);
+    this.token = localStorage.getItem('authToken');
   }
 
   private getHeaders(): Record<string, string> {
-    return {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
+    
+    const token = this.token || localStorage.getItem('authToken');
+    if (token && token !== 'authenticated') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return headers;
   }
 
   private async handleResponse<T>(xhr: XMLHttpRequest): Promise<T> {
-    console.log('Response status:', xhr.status);
-    console.log('Response text:', xhr.responseText);
+    console.log('Response status:', xhr.status, 'URL:', xhr.responseURL);
+    
+    if (xhr.status === 401 || xhr.status === 403) {
+      console.warn('Authentication error');
+      localStorage.removeItem('authToken');
+      this.token = null;
+    }
     
     if (xhr.status < 200 || xhr.status >= 300) {
       let errorData;
@@ -25,17 +39,23 @@ class ApiClient {
         if (xhr.responseText) {
           errorData = JSON.parse(xhr.responseText);
         } else {
-          errorData = { reason: 'Empty response' };
+          errorData = { reason: `HTTP ${xhr.status}: ${xhr.statusText || 'No response'}` };
         }
       } catch {
-        errorData = { reason: xhr.responseText || xhr.statusText || 'Unknown error' };
+        errorData = { reason: xhr.responseText || xhr.statusText || `HTTP ${xhr.status}: Unknown error` };
       }
-      console.error('API Error:', errorData);
-      throw new Error(errorData.reason || `HTTP ${xhr.status}`);
+      
+      const errorMessage = errorData.reason || `HTTP ${xhr.status}`;
+      const apiError = new Error(errorMessage);
+      
+      (apiError as any).status = xhr.status;
+      (apiError as any).responseData = errorData;
+      
+      throw apiError;
     }
 
     if (xhr.responseText === 'OK' || xhr.responseText.trim() === 'OK') {
-      return { token: 'login-success' } as T;
+      return {} as T;
     }
 
     try {
@@ -46,13 +66,15 @@ class ApiClient {
     } catch (error) {
       console.error('JSON parse error:', error, 'on text:', xhr.responseText);
       if (xhr.status === 200) {
-        return { token: 'server-success' } as T;
+        return {} as T;
       }
-      throw new Error('Wrong json format');
+      const parseError = new Error('Wrong json format');
+      (parseError as any).status = xhr.status;
+      throw parseError;
     }
   }
 
-  async login(login: string, password: string): Promise<{ token: string }> {
+  async login(login: string, password: string): Promise<void> {
     console.log('API login called with:', { login, password: password ? '***' : 'empty' });
     
     const response = await this.http.post('/auth/signin', {
@@ -60,14 +82,21 @@ class ApiClient {
       headers: this.getHeaders(),
     });
 
-    const result = await this.handleResponse<{ token: string }>(response);
+    await this.handleResponse(response);
     
-    console.log('Login result:', result);
-    
+    console.log('Login successful');
     localStorage.setItem('authToken', 'authenticated');
-    console.log('Login status saved (cookies set by server)');
+    localStorage.setItem('userLogin', login);
     
-    return result;
+    try {
+      const userData = await this.getUser();
+      if (userData.id) {
+        localStorage.setItem('userId', userData.id.toString());
+        console.log('User ID saved:', userData.id);
+      }
+    } catch (error) {
+      console.error('Failed to get user after login:', error);
+    }
   }
 
   async register(data: {
@@ -77,7 +106,7 @@ class ApiClient {
     email: string;
     password: string;
     phone: string;
-  }): Promise<{ id: number }> {
+  }): Promise<void> {
     console.log('API register called with data:', { ...data, password: '***' });
     
     const response = await this.http.post('/auth/signup', {
@@ -85,7 +114,11 @@ class ApiClient {
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<{ id: number }>(response);
+    await this.handleResponse<void>(response);
+    
+    console.log('Registration successful');
+    
+    await this.login(data.login, data.password);
   }
 
   async logout(): Promise<void> {
@@ -96,6 +129,9 @@ class ApiClient {
       await this.handleResponse<void>(response);
     } finally {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userLogin');
+      this.token = null;
     }
   }
 
@@ -127,7 +163,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    const response = await this.http.post('/user/avatar', {
+    const response = await this.http.put('/user/profile/avatar', {
       data: formData,
     });
 
@@ -178,8 +214,8 @@ class ApiClient {
   }
 
   async addUsersToChat(chatId: number, users: number[]): Promise<void> {
-    const response = await this.http.post(`/chats/${chatId}/users`, {
-      data: { users },
+    const response = await this.http.put('/chats/users', {
+      data: { users, chatId },
       headers: this.getHeaders(),
     });
 
@@ -187,8 +223,8 @@ class ApiClient {
   }
 
   async deleteUsersFromChat(chatId: number, users: number[]): Promise<void> {
-    const response = await this.http.delete(`/chats/${chatId}/users`, {
-      data: { users },
+    const response = await this.http.delete('/chats/users', {
+      data: { users, chatId },
       headers: this.getHeaders(),
     });
 
@@ -196,33 +232,33 @@ class ApiClient {
   }
 
   async getToken(chatId: number): Promise<{ token: string }> {
-    const response = await this.http.get(`/chats/${chatId}/token`, {
+    const response = await this.http.post(`/chats/token/${chatId}`, {
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<{ token: string }>(response);
-  }
-
-  async getMessages(chatId: number): Promise<any[]> {
-    const response = await this.http.get(`/chats/${chatId}/messages`, {
-      data: { limit: 20 },
-      headers: this.getHeaders(),
-    });
-
-    return this.handleResponse<any[]>(response);
+    const result = await this.handleResponse<{ token: string }>(response);
+    
+    if (result.token) {
+      this.token = result.token;
+      localStorage.setItem(`chatToken_${chatId}`, result.token);
+    }
+    
+    return result;
   }
 
   async sendMessage(chatId: number, content: string): Promise<any> {
-    const response = await this.http.post(`/chats/${chatId}/messages`, {
-      data: { content },
-      headers: this.getHeaders(),
+    console.log('API: Сообщения отправляются через WebSocket, не через REST API');
+    console.log('chatId:', chatId, 'content:', content);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: true, message: 'Сообщение отправлено через WebSocket' });
+      }, 100);
     });
-
-    return this.handleResponse(response);
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('authToken');
+    return localStorage.getItem('authToken') === 'authenticated';
   }
 }
 

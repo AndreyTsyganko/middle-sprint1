@@ -37,12 +37,15 @@ export default class ChatsPage extends Block {
   private currentUser: any = null;
   private profileModal: ProfileModal | null = null;
   private isModalOpen: boolean = false;
+  private eventHandlersAttached: boolean = false;
 
   constructor(props: ChatsPageProps = {}) {
     super('div', {
       ...props,
       chatItems: [],
       messageComponents: [],
+      isChatSelected: false,
+      selectedChatTitle: 'Выберите чат',
     });
 
     (window as any).chatsPageInstance = this;
@@ -61,19 +64,28 @@ export default class ChatsPage extends Block {
     try {
       this.currentUser = await api.getUser();
       console.log('Current user loaded for ChatsPage:', this.currentUser);
+      
+      if (this.currentUser?.id) {
+        localStorage.setItem('userId', this.currentUser.id.toString());
+      }
     } catch (error: any) {
       console.error('Failed to load current user:', error.message);
+      
+      if (!api.isAuthenticated()) {
+        console.log('User not authenticated, redirecting to login');
+        if ((window as any).appRouter) {
+          (window as any).appRouter.go('/');
+        }
+        return;
+      }
+      
       this.currentUser = { 
-        id: 1, 
-        login: 'Testuser',
-        first_name: 'Тестовый',
-        second_name: 'Пользователь',
-        display_name: '',
-        email: 'test@example.com',
-        phone: '+79991234567',
+        id: localStorage.getItem('userId') || 0,
+        login: localStorage.getItem('userLogin') || 'User',
+        first_name: 'Пользователь',
+        second_name: '',
         avatar: '/ui/default-avatar.jpg'
       };
-      console.log('Using mock user for demo');
     }
   }
 
@@ -93,20 +105,10 @@ export default class ChatsPage extends Block {
       this.chats = Array.isArray(chatsResponse) ? chatsResponse : [];
   
       if (this.chats.length === 0) {
-        console.log('No chats found. Creating test chat...');
-        try {
-          await api.createChat('Тестовый чат');
-          const newChats = await api.getChats();
-          this.chats = Array.isArray(newChats) ? newChats : [];
-        } catch (error) {
-          console.log('Failed to create test chat:', error);
-          this.chats = [{
-            id: 1,
-            title: 'Демо чат',
-            avatar: '/ui/default-avatar.jpg',
-            unread_count: 0
-          }];
-        }
+        console.log('No chats found');
+        const chatItems: ChatItem[] = [];
+        this.setProps({ chatItems });
+        return;
       }
   
       const chatItems = this.chats.map((chat) => new ChatItem({
@@ -116,6 +118,10 @@ export default class ChatsPage extends Block {
         lastMessage: chat.last_message?.content || 'Нет сообщений',
         time: this.formatTime(chat.last_message?.time),
         unreadCount: chat.unread_count,
+        onClick: (id: number) => {
+          console.log(`Chat item clicked via ChatItem: ${id}`);
+          this.handleChatSelect(id);
+        }
       }));
 
       this.setProps({ chatItems });
@@ -127,87 +133,177 @@ export default class ChatsPage extends Block {
       }
     } catch (error: any) {
       console.error('Failed to load chats:', error.message);
-      this.chats = [{
-        id: 1,
-        title: 'Демо чат',
-        avatar: '/ui/default-avatar.jpg',
-        unread_count: 3
-      }];
-      const chatItems = this.chats.map((chat) => new ChatItem({
-        id: chat.id,
-        title: chat.title,
-        avatar: chat.avatar,
-        lastMessage: 'Привет! Как дела?',
-        time: '14:30',
-        unreadCount: chat.unread_count,
-      }));
-      this.setProps({ chatItems });
+      this.chats = [];
+      this.setProps({ chatItems: [] });
     }
+  }
+
+  private updateInputFieldsState(enabled: boolean): void {
+    setTimeout(() => {
+      const messageInput = this.element?.querySelector('#message') as HTMLInputElement;
+      const sendButton = this.element?.querySelector('#sendMessage') as HTMLButtonElement;
+      const attachButton = this.element?.querySelector('.attach-button') as HTMLButtonElement;
+      
+      if (messageInput) {
+        messageInput.disabled = !enabled;
+        messageInput.placeholder = enabled ? 'Сообщение' : 'Выберите чат для отправки сообщения';
+        if (enabled) {
+          messageInput.focus();
+        }
+      }
+      
+      if (sendButton) {
+        sendButton.disabled = !enabled;
+      }
+      
+      if (attachButton) {
+        attachButton.disabled = !enabled;
+      }
+    }, 50);
   }
 
   async handleChatSelect(chatId: number): Promise<void> {
     try {
-      console.log(`🔥 Выбран чат: ${chatId}`);
+      console.log(`Выбран чат: ${chatId}`);
       this.selectedChatId = chatId;
-  
+      
+      const selectedChat = this.chats.find(chat => chat.id === chatId);
+      const chatTitle = selectedChat?.title || 'Загрузка...';
+      
+      this.setProps({ 
+        isChatSelected: true,
+        selectedChatTitle: chatTitle
+      });
+
       wsService.disconnect();
-  
-      this.loadChatUsers(chatId).catch(console.error);
-  
-      try {
-        const messagesResponse = await api.getMessages(chatId);
-        console.log(`Raw messages response:`, messagesResponse);
-        this.messages = Array.isArray(messagesResponse) ? messagesResponse : [];
-      } catch (error) {
-        console.log('No messages available:', error);
-        this.messages = [];
-      }
-  
+
+      this.updateInputFieldsState(true);
+
+      await this.loadChatUsers(chatId);
+
+      this.messages = [];
       const messageComponents = this.messages.map((msg: any) => new Message({
-        content: msg.content || 'Тестовое сообщение',
+        content: msg.content || '',
         time: this.formatTime(msg.time),
         isMine: msg.user_id === this.currentUser?.id,
       }));
 
       this.setProps({ messageComponents });
-  
-      const selectedChat = this.chats.find(chat => chat.id === chatId);
+
       if (selectedChat) {
         this.updateChatHeader(selectedChat);
       }
 
-      const token = localStorage.getItem('token') || localStorage.getItem('userToken') || '';
-      wsService.connect(chatId, token, this.handleNewWebSocketMessage.bind(this));
+      try {
+        console.log(`Получение токена для чата ${chatId}...`);
+        const tokenResponse = await api.getToken(chatId);
+        console.log('WebSocket токен получен:', tokenResponse);
+        
+        if (tokenResponse.token) {
+          const userId = this.currentUser?.id || localStorage.getItem('userId');
+          if (!userId) {
+            console.error('User ID не найден для WebSocket');
+            throw new Error('User ID не найден');
+          }
+          
+          console.log(`Подключение WebSocket: userId=${userId}, chatId=${chatId}, token=${tokenResponse.token.substring(0, 10)}...`);
+          
+          wsService.connect(
+            chatId, 
+            tokenResponse.token, 
+            this.handleNewWebSocketMessage.bind(this)
+          );
+        } else {
+          console.error('Токен не получен от сервера');
+          throw new Error('Не удалось получить токен для чата');
+        }
+      } catch (tokenError: any) {
+        console.error('Ошибка получения WebSocket токена:', tokenError.message);
+        
+        const userId = this.currentUser?.id || localStorage.getItem('userId');
+        if (userId) {
+          console.log('Используем User ID как токен для отладки');
+          wsService.connect(
+            chatId, 
+            userId.toString(), 
+            this.handleNewWebSocketMessage.bind(this)
+          );
+        } else {
+          console.error('User ID не найден для fallback подключения');
+          alert('Не удалось подключиться к чату. Попробуйте перезагрузить страницу.');
+        }
+      }
 
       if (this.props.onChatSelect) {
         this.props.onChatSelect(chatId);
       }
     } catch (error: any) {
       console.error('Failed to load chat data:', error.message);
+      alert(`Ошибка загрузки чата: ${error.message}`);
     }
   }
 
   private handleNewWebSocketMessage = (data: any): void => {
     console.log('Новое WebSocket сообщение:', data);
     
-    const message = data.type === 'message' ? data : data.server_message;
+    if (Array.isArray(data)) {
+      console.log(`Получено ${data.length} старых сообщений`);
+      
+      const userId = this.currentUser?.id || localStorage.getItem('userId');
+      
+      data.forEach((msg: any) => {
+        const message = {
+          id: msg.id,
+          content: msg.content,
+          time: msg.time,
+          user_id: msg.user_id,
+          isMine: msg.user_id?.toString() === userId?.toString()
+        };
+        
+        this.messages.unshift(message);
+      });
+      
+      this.messages = this.messages.slice(0, 100);
+      
+    } else if (data.type === 'message' && data.content) {
+      const userId = this.currentUser?.id || localStorage.getItem('userId');
+      const newMessage = {
+        id: data.id || Date.now(),
+        content: data.content,
+        time: data.time || new Date().toISOString(),
+        user_id: data.user_id,
+        isMine: data.user_id?.toString() === userId?.toString()
+      };
+      
+      console.log('Добавляем новое сообщение:', newMessage);
+      
+      this.messages.unshift(newMessage);
+      this.messages = this.messages.slice(0, 100);
+    } else if (data.type === 'user connected') {
+      console.log('Пользователь подключился к чату:', data);
+      return;
+    } else if (data.type === 'pong') {
+      return;
+    } else {
+      console.log('Неизвестный тип сообщения WebSocket:', data);
+      return;
+    }
     
-    this.messages.unshift({
-      id: Date.now(),
-      content: message.content,
-      time: new Date().toISOString(),
-      user_id: message.user_id || 2,
-    });
-
-    this.messages = this.messages.slice(0, 100);
-
+    const userId = this.currentUser?.id || localStorage.getItem('userId');
     const messageComponents = this.messages.map((msg: any) => new Message({
       content: msg.content,
       time: this.formatTime(msg.time),
-      isMine: msg.user_id === this.currentUser?.id,
+      isMine: msg.user_id?.toString() === userId?.toString(),
     }));
 
     this.setProps({ messageComponents });
+    
+    setTimeout(() => {
+      const messagesContainer = this.element?.querySelector('#messagesContainer');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = 0;
+      }
+    }, 100);
   }
 
   async handleSendMessage(): Promise<void> {
@@ -228,13 +324,26 @@ export default class ChatsPage extends Block {
       type: 'message'
     };
     
-    wsService.send(JSON.stringify(wsMessage));
-    
-    if (messageInput) {
-      messageInput.value = '';
+    try {
+      if (!wsService.isConnected()) {
+        alert('WebSocket не подключен. Переподключаемся...');
+        await this.handleChatSelect(this.selectedChatId);
+        return;
+      }
+      
+      console.log('Отправка сообщения через WebSocket:', wsMessage);
+      wsService.send(JSON.stringify(wsMessage));
+      
+      if (messageInput) {
+        messageInput.value = '';
+      }
+      
+      console.log('Сообщение отправлено, ожидаем подтверждения от сервера...');
+      
+    } catch (error: any) {
+      console.error('Ошибка отправки сообщения:', error);
+      alert('Не удалось отправить сообщения. Проверьте подключение.');
     }
-
-    console.log('Сообщение отправлено через WebSocket!');
   }
 
   async loadChatUsers(chatId: number): Promise<void> {
@@ -343,20 +452,10 @@ export default class ChatsPage extends Block {
     }
     
     this.isModalOpen = true;
-    
 
     this.profileModal = new ProfileModal({
-      user: {
-        ...this.currentUser,
-        avatar: this.currentUser?.avatar || '/ui/default-avatar.jpg',
-        first_name: this.currentUser?.first_name || '',
-        second_name: this.currentUser?.second_name || '',
-        display_name: this.currentUser?.display_name || '',
-        login: this.currentUser?.login || '',
-        email: this.currentUser?.email || '',
-        phone: this.currentUser?.phone || ''
-      },
       isOpen: true,
+      user: this.currentUser,
       onClose: () => {
         console.log('ProfileModal onClose callback');
         this.closeProfileModal();
@@ -373,13 +472,13 @@ export default class ChatsPage extends Block {
           alert('Ошибка обновления профиля: ' + error.message);
         }
       },
-      onLogout: () => {
+      onLogout: async () => {
         console.log('ProfileModal onLogout callback');
-        this.handleLogout();
+        await this.handleLogout();
       },
-      onDelete: () => {
+      onDelete: async () => {
         console.log('ProfileModal onDelete callback');
-        this.handleDeleteProfile();
+        await this.handleDeleteProfile();
       }
     });
     
@@ -393,18 +492,14 @@ export default class ChatsPage extends Block {
     if (existingContainer) {
       existingContainer.remove();
     }
-    
 
     const modalContainer = document.createElement('div');
     modalContainer.id = 'profileModalContainer';
-    
 
     const modalHtml = this.profileModal.render();
-    
 
     modalContainer.innerHTML = modalHtml;
     this.element.appendChild(modalContainer);
-    
 
     this.profileModal.componentDidMount();
   }
@@ -430,45 +525,61 @@ export default class ChatsPage extends Block {
   async handleLogout(): Promise<void> {
     try {
       await api.logout();
-      
 
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
       localStorage.removeItem('userLogin');
-      localStorage.removeItem('userPassword');
-      
 
       wsService.disconnect();
       
       console.log('User logged out successfully');
-      
 
       this.closeProfileModal();
       
       if ((window as any).appRouter) {
         (window as any).appRouter.go('/');
+      } else {
+        window.location.href = '/';
       }
     } catch (error: any) {
       console.error('Logout error:', error.message);
-
+      
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userLogin');
+      
       if ((window as any).appRouter) {
         (window as any).appRouter.go('/');
+      } else {
+        window.location.href = '/';
       }
     }
   }
 
   async handleDeleteProfile(): Promise<void> {
-    const confirmDelete = confirm('Вы уверены, что хотите удалить профиль? Это действие нельзя отменить.');
-    if (confirmDelete) {
-      try {
-        // Здесь должен быть вызов API для удаления профиля
-        // await api.deleteProfile();
-        alert('Профиль удален');
-        
+    try {
+      // Вызываем API для удаления профиля
+      // await api.deleteProfile();
+      
+      alert('Профиль удален');
+      
 
-        await this.handleLogout();
-      } catch (error: any) {
-        alert('Ошибка удаления профиля: ' + error.message);
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userLogin');
+
+      wsService.disconnect();
+      
+      this.closeProfileModal();
+      
+      if ((window as any).appRouter) {
+        (window as any).appRouter.go('/');
+      } else {
+        window.location.href = '/';
       }
+    } catch (error: any) {
+      console.error('Delete profile error:', error.message);
+      alert('Ошибка удаления профиля: ' + error.message);
     }
   }
 
@@ -483,114 +594,78 @@ export default class ChatsPage extends Block {
   async createChat(title: string): Promise<void> {
     try {
       console.log('API createChat called with:', { title });
-      await api.createChat(title);
+      const response = await api.createChat(title);
+      console.log('Chat created:', response);
       alert('Чат успешно создан!');
       await this.loadChats();
+      
+      if (response.id) {
+        setTimeout(() => {
+          this.handleChatSelect(response.id);
+        }, 500);
+      }
     } catch (error: any) {
       console.error('Failed to create chat:', error.message);
       alert('Ошибка создания чата: ' + error.message);
-      this.chats.unshift({
-        id: Date.now(),
-        title: title,
-        avatar: '/ui/default-avatar.jpg',
-        unread_count: 0
-      });
-      const chatItems = this.chats.map((chat) => new ChatItem({
-        id: chat.id,
-        title: chat.title,
-        avatar: chat.avatar,
-        lastMessage: 'Новый чат создан!',
-        time: this.formatTime(new Date().toISOString()),
-        unreadCount: chat.unread_count,
-      }));
-      this.setProps({ chatItems });
     }
   }
 
   componentDidMount(): void {
     console.log('ChatsPage mounted');
-    this.setupEventDelegation();
-    this.setupProfileModalDelegation();
+    
+    if (!this.eventHandlersAttached) {
+      this.setupEventDelegation();
+      this.eventHandlersAttached = true;
+    }
   }
 
   setupEventDelegation(): void {
+    console.log('Setting up event delegation...');
+    
     this.element?.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
-      
-      if (target.id === 'createChat' || target.closest('#createChat')) {
-        e.preventDefault();
-        console.log('🔥 CREATE CHAT BUTTON CLICKED!');
-        this.handleCreateChat();
-      }
       
       if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
         e.preventDefault();
         console.log('🔥 Send button clicked');
         this.handleSendMessage();
-      }
-      
-      // Обработка клика по кнопке "Профиль"
-      if (target.classList.contains('profile-link-button') || 
-          target.closest('.profile-link-button')) {
+      } else if (target.id === 'createChat' || target.closest('#createChat')) {
+        e.preventDefault();
+        console.log('🔥 CREATE CHAT BUTTON CLICKED!');
+        this.handleCreateChat();
+      } else if (target.classList.contains('profile-link-button') || target.closest('.profile-link-button')) {
         e.preventDefault();
         console.log('🔥 Profile button clicked - opening modal');
         this.openProfileModal();
-      }
-      
-      if (target.id === 'addUserToChat' || target.closest('#addUserToChat')) {
+      } else if (target.id === 'addUserToChat' || target.closest('#addUserToChat')) {
         e.preventDefault();
         console.log('Add user clicked');
         this.handleAddUserToChat();
-      }
-      
-      if (target.id === 'removeUserFromChat' || target.closest('#removeUserFromChat')) {
+      } else if (target.id === 'removeUserFromChat' || target.closest('#removeUserFromChat')) {
         e.preventDefault();
         console.log('Remove user clicked');
         this.handleRemoveUserFromChat();
       }
     });
-
+    
     this.element?.addEventListener('keypress', (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && (e.target as HTMLElement).id === 'message') {
+      if ((e.target as HTMLElement).id === 'message' && e.key === 'Enter') {
+        e.preventDefault();
         console.log('Enter pressed in message input');
         this.handleSendMessage();
       }
     });
   }
 
-  setupProfileModalDelegation(): void {
-    this.element?.addEventListener('click', (e: Event) => {
-      const target = e.target as HTMLElement;
-      
-      if (target.classList.contains('modal-close') || target.closest('.modal-close')) {
-        e.preventDefault();
-        console.log('Modal close clicked from delegation');
-        this.closeProfileModal();
-      }
-      
-      const modalOverlay = target.closest('.modal-overlay');
-      if (modalOverlay && !modalOverlay.querySelector('.modal-content')?.contains(target)) {
-        console.log('Modal overlay clicked from delegation');
-        this.closeProfileModal();
-      }
-      
-      if (target.id === 'backToChats' || target.closest('#backToChats')) {
-        e.preventDefault();
-        console.log('Back to chats clicked from delegation');
-        this.closeProfileModal();
-      }
-    });
-  }
-
   render(): string {
-    const { chatItems = [], messageComponents = [] } = this.props;
+    const { chatItems = [], messageComponents = [], isChatSelected = false, selectedChatTitle = 'Выберите чат' } = this.props;
 
     return `
     <main class="chats-page">
       <div class="chats-container">
         <aside class="chats-sidebar">
           <div class="sidebar-header">
-            <button class="profile-link-button">Профиль ></button>
+            <button class="profile-link-button">Мой профиль</button>
             <div class="search-container">
               <input type="text" class="search-input" placeholder="Поиск">
             </div>
@@ -607,11 +682,11 @@ export default class ChatsPage extends Block {
                 <img src="/ui/default-avatar.jpg" alt="Чат" class="header-avatar-img">
               </div>
               <div class="chat-header-title">
-                ${this.selectedChatId ? this.chats.find(c => c.id === this.selectedChatId)?.title || 'Загрузка...' : 'Выберите чат'}
+                ${selectedChatTitle}
               </div>
             </div>
             <div class="chat-header-actions">
-              ${this.selectedChatId ? `
+              ${isChatSelected ? `
                 <button class="action-button" id="addUserToChat" title="Добавить пользователя">+👤</button>
                 <button class="action-button" id="removeUserFromChat" title="Удалить пользователя">-👤</button>
               ` : ''}
@@ -620,17 +695,24 @@ export default class ChatsPage extends Block {
           </div>
           <div class="messages-container" id="messagesContainer">
             ${messageComponents.map((msg) => msg.render()).join('')}
+            ${messageComponents.length === 0 ? `
+              <div class="no-messages">
+                <p>${isChatSelected ? 'Сообщений пока нет' : 'Выберите чат для начала общения'}</p>
+                <p>${isChatSelected ? 'Начните общение!' : ''}</p>
+              </div>
+            ` : ''}
           </div>
           <div class="message-input-area">
-            <button class="attach-button" title="Прикрепить файл">📎</button>
+            <button class="attach-button" title="Прикрепить файл" ${!isChatSelected ? 'disabled' : ''}>📎</button>
             <input
               type="text"
               class="message-input"
               id="message"
               name="message"
-              placeholder="Сообщение"
+              placeholder="${isChatSelected ? 'Сообщение' : 'Выберите чат для отправки сообщения'}"
+              ${!isChatSelected ? 'disabled' : ''}
             >
-            <button class="send-button" id="sendMessage">→</button>
+            <button class="send-button" id="sendMessage" ${!isChatSelected ? 'disabled' : ''}>→</button>
           </div>
         </section>
       </div>

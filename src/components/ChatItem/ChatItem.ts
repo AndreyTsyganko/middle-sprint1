@@ -12,12 +12,7 @@ interface ChatItemProps {
 
 export default class ChatItem extends Block {
   constructor(props: ChatItemProps) {
-    super('div', {
-      ...props,
-      events: {
-        click: () => props.onClick?.(props.id),
-      },
-    });
+    super('div', props);
   }
 
   render(): string {
