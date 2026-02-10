@@ -163,10 +163,19 @@ class ApiClient {
     const formData = new FormData();
     formData.append('avatar', file);
 
+    console.log('🔥 API updateAvatar → PUT /user/profile/avatar');
+    console.log('Файл:', file.name, file.size, 'bytes');
+    console.log('Токен:', localStorage.getItem('authToken') ? 'есть' : 'НЕТ!');
+
+    const token = localStorage.getItem('authToken');
     const response = await this.http.put('/user/profile/avatar', {
       data: formData,
+      headers: token ? {
+        'Authorization': `Bearer ${token}`
+      } : {}
     });
 
+    console.log('Аватар сохранен! Статус:', response.status);
     return this.handleResponse(response);
   }
 

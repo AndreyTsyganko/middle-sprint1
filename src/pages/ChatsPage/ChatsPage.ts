@@ -63,6 +63,14 @@ export default class ChatsPage extends Block {
   async loadCurrentUser(): Promise<void> {
     try {
       this.currentUser = await api.getUser();
+      
+      if (this.currentUser?.avatar) {
+        const cleanUrl = this.currentUser.avatar.replace(/(\?t=\d+)?(&t=\d+)?/, '');
+        this.currentUser.avatar = cleanUrl.includes('?') 
+          ? `${cleanUrl}&t=${Date.now()}` 
+          : `${cleanUrl}?t=${Date.now()}`;
+      }
+      
       console.log('Current user loaded for ChatsPage:', this.currentUser);
       
       if (this.currentUser?.id) {
@@ -101,16 +109,16 @@ export default class ChatsPage extends Block {
 
       const chatsResponse = await api.getChats();
       console.log('Raw chats response:', chatsResponse);
-  
+
       this.chats = Array.isArray(chatsResponse) ? chatsResponse : [];
-  
+
       if (this.chats.length === 0) {
         console.log('No chats found');
         const chatItems: ChatItem[] = [];
         this.setProps({ chatItems });
         return;
       }
-  
+
       const chatItems = this.chats.map((chat) => new ChatItem({
         id: chat.id,
         title: chat.title,
@@ -375,7 +383,7 @@ export default class ChatsPage extends Block {
 
       const user = users[0];
       const confirmAdd = confirm(`Добавить пользователя ${user.login} (${user.first_name} ${user.second_name}) в чат?`);
-  
+
       if (confirmAdd) {
         await api.addUsersToChat(this.selectedChatId!, [user.id]);
         alert('Пользователь добавлен в чат');
@@ -396,7 +404,7 @@ export default class ChatsPage extends Block {
     const userList = this.chatUsersList
       .map(user => `${user.login} (${user.first_name} ${user.second_name})`)
       .join('\n');
-  
+
     const userLogin = prompt(`Введите логин пользователя для удаления:\n\nДоступные пользователи:\n${userList}`);
     if (!userLogin) return;
 
@@ -407,7 +415,7 @@ export default class ChatsPage extends Block {
     }
 
     const confirmRemove = confirm(`Удалить пользователя ${userToRemove.login} из чата?`);
-  
+
     if (confirmRemove) {
       try {
         await api.deleteUsersFromChat(this.selectedChatId!, [userToRemove.id]);
@@ -462,9 +470,13 @@ export default class ChatsPage extends Block {
       },
       onSave: async (data: any) => {
         console.log('ProfileModal onSave callback with data:', data);
+        
         try {
-          await api.updateProfile(data);
-          await this.loadCurrentUser();
+          this.currentUser = data;
+          console.log('Updated currentUser with new avatar:', this.currentUser);
+          
+          this.updateUserAvatarGlobally();
+          
           alert('Профиль успешно обновлен');
           this.closeProfileModal();
         } catch (error: any) {
@@ -483,6 +495,38 @@ export default class ChatsPage extends Block {
     });
     
     this.addModalToDOM();
+  }
+
+  private updateUserAvatarGlobally(): void {
+    let cleanAvatarUrl = this.currentUser?.avatar || '/ui/default-avatar.jpg';
+    cleanAvatarUrl = cleanAvatarUrl.replace(/(\?t=\d+)?(&t=\d+)?/g, '');
+    
+    const avatarUrl = cleanAvatarUrl.includes('?') 
+      ? `${cleanAvatarUrl}&t=${Date.now()}` 
+      : `${cleanAvatarUrl}?t=${Date.now()}`;
+    
+    console.log('ЧИСТЫЙ ГЛОБАЛЬНЫЙ АВАТАР URL:', avatarUrl);
+
+    const avatarSelectors = [
+      '.header-avatar-img', 
+      '.profile-avatar', 
+      '#avatarImage', 
+      '.avatar-image',
+      '.chat-avatar-img',
+      '.chat-item-avatar img'
+    ];
+    
+    avatarSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(img => {
+        const image = img as HTMLImageElement;
+        image.src = avatarUrl;
+        image.loading = 'eager';
+        image.style.objectFit = 'cover';
+        image.style.objectPosition = 'center';
+        image.decode().catch(() => {});
+        console.log('Глобально обновлен:', selector, image.src);
+      });
+    });
   }
 
   private addModalToDOM(): void {
@@ -558,11 +602,7 @@ export default class ChatsPage extends Block {
 
   async handleDeleteProfile(): Promise<void> {
     try {
-      // Вызываем API для удаления профиля
-      // await api.deleteProfile();
-      
       alert('Профиль удален');
-      
 
       localStorage.removeItem('authToken');
       localStorage.removeItem('userId');
@@ -586,7 +626,7 @@ export default class ChatsPage extends Block {
   handleCreateChat(): void {
     const title = prompt('Введите название нового чата:');
     if (title) {
-      console.log('🔥 Создание чата:', title);
+      console.log('Создание чата:', title);
       this.createChat(title.trim());
     }
   }
@@ -627,15 +667,15 @@ export default class ChatsPage extends Block {
       
       if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
         e.preventDefault();
-        console.log('🔥 Send button clicked');
+        console.log('Send button clicked');
         this.handleSendMessage();
       } else if (target.id === 'createChat' || target.closest('#createChat')) {
         e.preventDefault();
-        console.log('🔥 CREATE CHAT BUTTON CLICKED!');
+        console.log('CREATE CHAT BUTTON CLICKED!');
         this.handleCreateChat();
       } else if (target.classList.contains('profile-link-button') || target.closest('.profile-link-button')) {
         e.preventDefault();
-        console.log('🔥 Profile button clicked - opening modal');
+        console.log('Profile button clicked - opening modal');
         this.openProfileModal();
       } else if (target.id === 'addUserToChat' || target.closest('#addUserToChat')) {
         e.preventDefault();
