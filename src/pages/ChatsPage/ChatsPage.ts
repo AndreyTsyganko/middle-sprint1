@@ -254,68 +254,45 @@ export default class ChatsPage extends Block {
     }
   }
 
-  private handleNewWebSocketMessage = (data: any): void => {
-    console.log('Новое WebSocket сообщение:', data);
-    
-    if (Array.isArray(data)) {
-      console.log(`Получено ${data.length} старых сообщений`);
-      
-      const userId = this.currentUser?.id || localStorage.getItem('userId');
-      
-      data.forEach((msg: any) => {
-        const message = {
-          id: msg.id,
-          content: msg.content,
-          time: msg.time,
-          user_id: msg.user_id,
-          isMine: msg.user_id?.toString() === userId?.toString()
-        };
-        
-        this.messages.unshift(message);
+private handleNewWebSocketMessage = (data: any): void => {
+  console.log('Новое WebSocket сообщение:', data);
+  
+  const userId = this.currentUser?.id || localStorage.getItem('userId');
+  
+  if (Array.isArray(data)) {
+    data.forEach((msg: any) => {
+      this.messages.push({
+        id: msg.id,
+        content: msg.content,
+        time: msg.time,
+        user_id: msg.user_id,
+        isMine: msg.user_id?.toString() === userId?.toString()
       });
-      
-      this.messages = this.messages.slice(0, 100);
-      
-    } else if (data.type === 'message' && data.content) {
-      const userId = this.currentUser?.id || localStorage.getItem('userId');
-      const newMessage = {
-        id: data.id || Date.now(),
-        content: data.content,
-        time: data.time || new Date().toISOString(),
-        user_id: data.user_id,
-        isMine: data.user_id?.toString() === userId?.toString()
-      };
-      
-      console.log('Добавляем новое сообщение:', newMessage);
-      
-      this.messages.unshift(newMessage);
-      this.messages = this.messages.slice(0, 100);
-    } else if (data.type === 'user connected') {
-      console.log('Пользователь подключился к чату:', data);
-      return;
-    } else if (data.type === 'pong') {
-      return;
-    } else {
-      console.log('Неизвестный тип сообщения WebSocket:', data);
-      return;
-    }
-    
-    const userId = this.currentUser?.id || localStorage.getItem('userId');
-    const messageComponents = this.messages.map((msg: any) => new Message({
+    });
+  } else if (data.type === 'message' && data.content) {
+    this.messages.push({
+      id: data.id || Date.now(),
+      content: data.content,
+      time: data.time || new Date().toISOString(),
+      user_id: data.user_id,
+      isMine: data.user_id?.toString() === userId?.toString()
+    }); 
+  }
+  
+  const messagesContainer = this.element?.querySelector('#messagesContainer');
+  if (messagesContainer) {
+    const messagesHtml = this.messages.slice(-20).map((msg: any) => new Message({
       content: msg.content,
       time: this.formatTime(msg.time),
       isMine: msg.user_id?.toString() === userId?.toString(),
-    }));
-
-    this.setProps({ messageComponents });
+    }).render()).join('');
     
+    messagesContainer.innerHTML = messagesHtml;
     setTimeout(() => {
-      const messagesContainer = this.element?.querySelector('#messagesContainer');
-      if (messagesContainer) {
-        messagesContainer.scrollTop = 0;
-      }
-    }, 100);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }, 50);
   }
+}
 
   async handleSendMessage(): Promise<void> {
     if (!this.selectedChatId) {
@@ -654,6 +631,17 @@ private updateUserAvatarGlobally(): void {
     
     this.element?.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
+
+          const chatItem = target.closest('.chat-item');
+    if (chatItem) {
+      const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
+      if (chatId) {
+        console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
+        this.handleChatSelect(chatId);
+        return;
+      }
+    }
+
       
       if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
         e.preventDefault();

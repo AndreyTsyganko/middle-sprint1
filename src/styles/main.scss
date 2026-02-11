@@ -895,3 +895,12 @@ body {
   font-size: 18px;
   position: absolute;
 }
+
+.messages-container {
+  height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;  
+  padding: 10px;
+}
