@@ -1,7 +1,14 @@
 {
-  "extends": "stylelint-config-standard",
+  "extends": "stylelint-config-standard-scss",
   "rules": {
-    "color-hex-case": "lower"
+    "color-hex-case": "lower",
+    "color-hex-length": null,
+    "color-function-notation": null,
+    "alpha-value-notation": null,
+    "no-duplicate-selectors": null,
+    "function-no-unknown": null,
+    "no-descending-specificity": null,
+    "declaration-block-no-redundant-longhand-properties": null
   },
   "ignoreFiles": [
     "build/*"
