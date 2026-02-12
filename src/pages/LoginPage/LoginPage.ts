@@ -89,7 +89,7 @@ export default class LoginPage extends Block {
           error.message?.includes("User already in system") ||
           error.responseData?.reason?.includes("User already in system")) {
         
-        console.log('✅ Пользователь уже в системе - перенаправляем в чаты');
+        console.log('Пользователь уже в системе - перенаправляем в чаты');
         
         if (window.appRouter) {
           window.appRouter.go('/messenger');
@@ -134,7 +134,7 @@ export default class LoginPage extends Block {
     try {
       const user = await api.getUser();
       if (user?.id) {
-        console.log('✅ Активная сессия на сервере - редирект в чаты');
+        console.log('Активная сессия на сервере - редирект в чаты');
         
         localStorage.setItem('authToken', 'authenticated');
         localStorage.setItem('userId', user.id.toString());

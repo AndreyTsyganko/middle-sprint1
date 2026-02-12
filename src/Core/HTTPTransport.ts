@@ -75,7 +75,6 @@ export default class HTTPTransport {
         hasData: !!data
       });
       
-      // Таймаут
       if (timeout) {
         xhr.timeout = timeout;
         xhr.ontimeout = () => {
