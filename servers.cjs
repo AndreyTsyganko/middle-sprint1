@@ -23,7 +23,7 @@ app.use('/api/v2', createProxyMiddleware({
 }));
 
 app.use(express.static('.'));
-
+/*
 app.use((req, res, next) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/v2')) {
     res.sendFile('index.html', { root: '.' });
@@ -31,6 +31,17 @@ app.use((req, res, next) => {
     next();
   }
 });
+*/
+
+
+app.get(/(.*)/, (req, res, next) => {
+    if (!req.path.startsWith('/api/v2')) {
+        res.sendFile('index.html', { root: '.' });
+    } else {
+        next();
+    }
+});
+
 
 app.listen(PORT, () => {
   console.log('='.repeat(50));
