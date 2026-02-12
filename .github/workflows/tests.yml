@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - sprint_3   # ← ДОБАВИТЬ!
 
 jobs:
   test:
@@ -31,19 +32,19 @@ jobs:
       run: set -eu && git clone https://github.com/Yandex-Practicum/tests-middle-frontend.git /tmp/tests-middle-frontend
 
     - name: Run tests (sprint_1)
-      if: ${{github.head_ref >= 'sprint_1'}}
+      if: ${{github.head_ref == 'sprint_1'}}   # ← ИСПРАВЛЕНО
       run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_1.bats
 
     - name: Run tests (sprint_2)
-      if: ${{github.head_ref >= 'sprint_2'}}
+      if: ${{github.head_ref == 'sprint_2'}}   # ← ИСПРАВЛЕНО
       run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_2.bats
 
     - name: Run tests (sprint_3)
-      if: ${{github.head_ref >= 'sprint_3'}}
+      if: ${{github.head_ref == 'sprint_3'}}   # ← ИСПРАВЛЕНО
       run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_3.bats
 
     - name: Run tests (sprint_4)
-      if: ${{github.head_ref >= 'sprint_4'}}
+      if: ${{github.head_ref == 'sprint_4'}}   # ← ИСПРАВЛЕНО
       run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_4.bats
 
     - name: Run tests (server)
