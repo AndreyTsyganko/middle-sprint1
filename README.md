@@ -66,4 +66,4 @@ API & Services: HTTPTransport - кастомный HTTP клиент,
                 ChatsApi - чаты (/chats, /messages),
                 WebSocketApi - real-time.
 
-Ссылка на Netlify - https://app.netlify.com/projects/sprint3-messenger-tsyganko/overview
+Ссылка на Netlify - https://sprint3-messenger-tsyganko.netlify.app/

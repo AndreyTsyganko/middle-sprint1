@@ -30,6 +30,8 @@ class ApiClient {
     if (xhr.status === 401 || xhr.status === 403) {
       console.warn('Authentication error');
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userLogin');
       this.token = null;
     }
     
@@ -50,6 +52,7 @@ class ApiClient {
       
       (apiError as any).status = xhr.status;
       (apiError as any).responseData = errorData;
+      (apiError as any).reason = errorData.reason;
       
       throw apiError;
     }
@@ -77,25 +80,35 @@ class ApiClient {
   async login(login: string, password: string): Promise<void> {
     console.log('API login called with:', { login, password: password ? '***' : 'empty' });
     
-    const response = await this.http.post('/auth/signin', {
-      data: { login, password },
-      headers: this.getHeaders(),
-    });
-
-    await this.handleResponse(response);
-    
-    console.log('Login successful');
-    localStorage.setItem('authToken', 'authenticated');
-    localStorage.setItem('userLogin', login);
-    
     try {
-      const userData = await this.getUser();
-      if (userData.id) {
-        localStorage.setItem('userId', userData.id.toString());
-        console.log('User ID saved:', userData.id);
+      const response = await this.http.post('/auth/signin', {
+        data: { login, password },
+        headers: this.getHeaders(),
+      });
+
+      await this.handleResponse(response);
+      
+      console.log('Login successful');
+      localStorage.setItem('authToken', 'authenticated');
+      localStorage.setItem('userLogin', login);
+      
+      try {
+        const userData = await this.getUser();
+        if (userData.id) {
+          localStorage.setItem('userId', userData.id.toString());
+          console.log('User ID saved:', userData.id);
+        }
+      } catch (error) {
+        console.error('Failed to get user after login:', error);
       }
-    } catch (error) {
-      console.error('Failed to get user after login:', error);
+    } catch (error: any) {
+      console.error('Login API error:', error);
+      
+      if (error.message?.includes('User already in system') && !error.reason) {
+        error.reason = 'User already in system';
+      }
+      
+      throw error;
     }
   }
 
@@ -136,11 +149,20 @@ class ApiClient {
   }
 
   async getUser(): Promise<any> {
-    const response = await this.http.get('/auth/user', {
-      headers: this.getHeaders(),
-    });
+    try {
+      const response = await this.http.get('/auth/user', {
+        headers: this.getHeaders(),
+      });
 
-    return this.handleResponse(response);
+      return this.handleResponse(response);
+    } catch (error: any) {
+      if (error.status === 401 || error.status === 403) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userLogin');
+      }
+      throw error;
+    }
   }
 
   async updateProfile(data: {

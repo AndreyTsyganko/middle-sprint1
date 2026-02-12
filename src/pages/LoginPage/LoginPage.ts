@@ -84,7 +84,24 @@ export default class LoginPage extends Block {
       
     } catch (error: any) {
       console.error('Login error:', error);
+      
+      if (error.reason === "User already in system" || 
+          error.message?.includes("User already in system") ||
+          error.responseData?.reason?.includes("User already in system")) {
+        
+        console.log('✅ Пользователь уже в системе - перенаправляем в чаты');
+        
+        if (window.appRouter) {
+          window.appRouter.go('/messenger');
+        } else {
+          window.location.href = '/messenger';
+        }
+        
+        return;
+      }
+      
       this.passwordField?.setError(error.message || 'Ошибка входа');
+      
     } finally {
       loginBtn.textContent = 'Войти';
       loginBtn.disabled = false;
@@ -113,13 +130,25 @@ export default class LoginPage extends Block {
     `;
   }
 
-  componentDidMount(): void {
-    if (api.isAuthenticated()) {
-      console.log('Already authenticated, redirecting to /messenger');
-      if (window.appRouter) {
-        window.appRouter.go('/messenger');
+  async componentDidMount(): Promise<void> {
+    try {
+      const user = await api.getUser();
+      if (user?.id) {
+        console.log('✅ Активная сессия на сервере - редирект в чаты');
+        
+        localStorage.setItem('authToken', 'authenticated');
+        localStorage.setItem('userId', user.id.toString());
+        localStorage.setItem('userLogin', user.login);
+        
+        if (window.appRouter) {
+          window.appRouter.go('/messenger');
+        } else {
+          window.location.href = '/messenger';
+        }
+        return;
       }
-      return;
+    } catch (error) {
+      console.log('Нет активной сессии на сервере');
     }
     
     const loginBtn = this.element?.querySelector('#loginBtn');
