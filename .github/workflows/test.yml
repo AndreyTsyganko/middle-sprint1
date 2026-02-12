@@ -1,0 +1,32 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+      - sprint-1
+      - sprint-2
+      - sprint-3
+
+env:
+  SPRINT: 3
+
+jobs:
+  test_project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+      - name: Install dependencies
+        run: npm install
+      - name: Install test runner
+        run: npm install --save-dev platform-conversion-tests@1
+      - name: Run tests
+        run: npx platform-conversion-tests
+        env:
+          SPRINT: ${{ env.SPRINT }}
+          
