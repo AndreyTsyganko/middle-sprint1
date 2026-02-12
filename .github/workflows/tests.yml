@@ -1,9 +1,10 @@
 name: Tests
 
 on:
-  push:
+  pull_request:
     branches:
       - main
+      - sprint_3
 
 jobs:
   test:
