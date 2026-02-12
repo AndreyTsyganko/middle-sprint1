@@ -1,31 +1,51 @@
-name: Test
+name: Tests
 
 on:
   pull_request:
     branches:
       - main
-      - sprint-1
-      - sprint-2
-      - sprint-3
-
-env:
-  SPRINT: 3
 
 jobs:
-  test_project:
+  test:
+    if: ${{github.head_ref == 'sprint_1' || github.head_ref == 'sprint_2' || github.head_ref == 'sprint_3' || github.head_ref == 'sprint_4'}}
+    env:
+      SPRINT: ${{github.head_ref}}
+      TERM: xterm-256color
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-      - name: Install dependencies
-        run: npm install
-      - name: Install test runner
-        run: npm install --save-dev @yandex-praktikum/platform-conversion-tests@1
-      - name: Run tests
-        run: npx platform-conversion-tests
-        env:
-          SPRINT: ${{ env.SPRINT }}
+    - name: Set up GitHub Actions
+      uses: actions/checkout@v3
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Сheck if the repository is private
+      if: ${{github.event.repository.private}}
+      run: exit 1
+    - name: Install testing libs
+      uses: mig4/setup-bats@v1
+    - name: Get testing lib
+      run: set -eu && git clone https://github.com/Yandex-Practicum/tests-middle-frontend.git /tmp/tests-middle-frontend
+
+    - name: Run tests (sprint_1)
+      if: ${{github.head_ref >= 'sprint_1'}}
+      run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_1.bats
+
+    - name: Run tests (sprint_2)
+      if: ${{github.head_ref >= 'sprint_2'}}
+      run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_2.bats
+
+    - name: Run tests (sprint_3)
+      if: ${{github.head_ref >= 'sprint_3'}}
+      run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_3.bats
+
+    - name: Run tests (sprint_4)
+      if: ${{github.head_ref >= 'sprint_4'}}
+      run: bats --formatter pretty /tmp/tests-middle-frontend/tests/sprint_4.bats
+
+    - name: Run tests (server)
+      run: bats --formatter pretty /tmp/tests-middle-frontend/tests/node_build.bats
+      
