@@ -52,6 +52,20 @@
     "react/jsx-filename-extension": "off",
     "react/react-in-jsx-scope": "off",
     "react/function-component-definition": "off",
-    "import/prefer-default-export": "off"
-  }
+    "import/prefer-default-export": "off",
+    "arrow-body-style": "off"
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "test/",
+    "vite.config.ts",
+    "types.d.ts",
+    "*.config.js",
+    "*.config.ts",
+    "coverage/",
+    "**/*.d.ts",
+    "dev-server.js",
+    "servers.cjs"
+  ]
 }
