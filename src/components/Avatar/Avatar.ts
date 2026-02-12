@@ -27,11 +27,11 @@ export default class Avatar extends Block {
   render(): string {
     const { src, size = 'medium' } = this.props;
 
-    const sizeClasses: Record<string, string> = {
-      small: 'avatar-image-small',
-      medium: 'avatar-image-medium',
-      large: 'avatar-image-large',
-    };
+const sizeClasses: Record<string, string> = {
+  small: 'avatar-image-small',
+  medium: 'avatar-image-medium',
+  large: 'avatar-image-large',
+};
 
     return `
       <div class="avatar-container">
