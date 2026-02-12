@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Проксирование API
+
 app.use('/api/v2', createProxyMiddleware({
   target: 'https://ya-praktikum.tech',
   changeOrigin: true,
@@ -24,26 +24,25 @@ app.use('/api/v2', createProxyMiddleware({
   }
 }));
 
-// Раздаём статические файлы из dist (для тестов)
+
 app.use(express.static(path.join(__dirname, 'dist')));
-// Также раздаём из корня (для разработки)
+
 app.use(express.static(__dirname));
 
-// Для SPA - все GET запросы отдаём index.html
-app.use((req, res, next) => {
-  if (req.method === 'GET' && !req.path.startsWith('/api/v2')) {
-    // Сначала пробуем из dist, потом из корня
-    const distPath = path.join(__dirname, 'dist', 'index.html');
-    const rootPath = path.join(__dirname, 'index.html');
-    
-    res.sendFile(distPath, { root: '.' }, (err) => {
-      if (err) {
-        res.sendFile(rootPath, { root: '.' });
-      }
-    });
-  } else {
-    next();
+app.get('*', (req, res, next) => {
+  // Пропускаем API запросы
+  if (req.path.startsWith('/api/v2')) {
+    return next();
   }
+  
+
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.sendFile(path.join(__dirname, 'index.html'));
+    }
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
