@@ -12,7 +12,7 @@
     "build": "vite build",
     "start": "node servers.cjs",
     "preview": "vite preview --port 3000",
-    "lint": "echo 'ESLint disabled'",
+    "lint": "eslint src --ext ts,tsx --max-warnings 10",
     "lint:strict": "echo 'ESLint disabled'",
     "lint:fix": "echo 'ESLint disabled'",
     "type-check": "tsc --noEmit",
