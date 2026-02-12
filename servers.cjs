@@ -34,7 +34,8 @@ app.use((req, res, next) => {
 */
 
 
-app.get(/(.*)/, (req, res, next) => {
+
+app.get('*', (req, res, next) => {
     if (!req.path.startsWith('/api/v2')) {
         res.sendFile('index.html', { root: '.' });
     } else {
