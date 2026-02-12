@@ -8,7 +8,8 @@
     "no-duplicate-selectors": null,
     "function-no-unknown": null,
     "no-descending-specificity": null,
-    "declaration-block-no-redundant-longhand-properties": null
+    "declaration-block-no-redundant-longhand-properties": null,
+    "scss/no-global-function-names": null
   },
   "ignoreFiles": [
     "build/*"
