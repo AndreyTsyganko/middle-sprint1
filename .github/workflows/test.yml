@@ -24,9 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Install test runner
-        run: npm install --save-dev platform-conversion-tests@1
+        run: npm install --save-dev @yandex-praktikum/platform-conversion-tests@1
       - name: Run tests
         run: npx platform-conversion-tests
         env:
           SPRINT: ${{ env.SPRINT }}
-          
