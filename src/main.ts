@@ -36,35 +36,35 @@ console.log('App initialized');
 
 async function checkAuth(): Promise<boolean> {
   console.log('Checking authentication...');
-  
+
   try {
     const user = await api.getUser();
     console.log('User authenticated:', user);
-    
+
     localStorage.setItem('user', JSON.stringify(user));
     localStorage.setItem('authChecked', 'true');
-    
+
     return true;
   } catch (error: any) {
     console.log('User not authenticated:', error.message);
-    
+
     localStorage.removeItem('user');
     localStorage.removeItem('authToken');
     localStorage.setItem('authChecked', 'true');
-    
+
     return false;
   }
 }
 
 export function handleLoginSuccess(): void {
   console.log('Login successful, updating auth state...');
-  
+
   localStorage.setItem('authChecked', 'true');
-  
+
   checkAuth().then((isAuthenticated) => {
     if (isAuthenticated) {
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
-      
+
       if (redirectPath) {
         sessionStorage.removeItem('redirectAfterLogin');
         router.go(redirectPath);
@@ -77,7 +77,7 @@ export function handleLoginSuccess(): void {
 
 export async function handleLogout(): Promise<void> {
   console.log('Logging out...');
-  
+
   try {
     await api.logout();
   } catch (error) {
@@ -86,53 +86,51 @@ export async function handleLogout(): Promise<void> {
     localStorage.removeItem('user');
     localStorage.removeItem('authToken');
     localStorage.setItem('authChecked', 'true');
-    
+
     router.go('/');
   }
 }
 
 async function initApp(): Promise<void> {
   console.log('initApp called');
-  
+
   const currentPath = window.location.pathname;
   const publicRoutes = ['/', '/sign-up'];
   const protectedRoutes = ['/settings', '/messenger'];
-  
+
   console.log('Current path:', currentPath);
-  
+
   const isAuthenticated = await checkAuth();
-  
+
   if (isAuthenticated) {
     console.log('User is authenticated');
-    
+
     if (publicRoutes.includes(currentPath)) {
       console.log(`Authenticated user on public page ${currentPath}, redirecting to /messenger`);
       router.go('/messenger');
       return;
     }
-    
+
     if (protectedRoutes.includes(currentPath)) {
       console.log(`Authenticated user accessing protected route ${currentPath}`);
-      return;
     }
-    
   } else {
     console.log('User is not authenticated');
-    
+
     if (protectedRoutes.includes(currentPath)) {
       console.log(`Unauthorized access to ${currentPath}, redirecting to login`);
-      
+
       sessionStorage.setItem('redirectAfterLogin', currentPath);
-      
+
       router.go('/');
       return;
     }
-    
+
     if (publicRoutes.includes(currentPath)) {
       console.log(`Unauthenticated user accessing public route ${currentPath}`);
       return;
     }
-    
+
     console.log(`Unknown route ${currentPath}, redirecting to login`);
     router.go('/');
   }
@@ -141,7 +139,7 @@ async function initApp(): Promise<void> {
 export function isAuthenticated(): boolean {
   const user = localStorage.getItem('user');
   const authChecked = localStorage.getItem('authChecked') === 'true';
-  
+
   return authChecked && !!user;
 }
 

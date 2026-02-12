@@ -19,18 +19,18 @@ export default class ChatItem extends Block {
           if (props.onClick) {
             props.onClick(props.id);
           }
-        }
-      }
+        },
+      },
     });
   }
 
   render(): string {
-    const { 
-      title = 'Без названия', 
-      avatar = '', 
-      lastMessage = 'Нет сообщений', 
-      time = '', 
-      unreadCount = 0 
+    const {
+      title = 'Без названия',
+      avatar = '',
+      lastMessage = 'Нет сообщений',
+      time = '',
+      unreadCount = 0,
     } = this.props;
 
     return `

@@ -32,7 +32,9 @@ export default class Block {
   private _registerEvents(eventBus: EventBus): void {
     eventBus.on(Block.EVENTS.INIT, this.init.bind(this));
     eventBus.on(Block.EVENTS.FLOW_CDM, this._componentDidMount.bind(this));
-    eventBus.on(Block.EVENTS.FLOW_CDU, this._componentDidUpdate.bind(this));
+    eventBus.on(Block.EVENTS.FLOW_CDU, (oldProps: unknown, newProps: unknown) => {
+      this._componentDidUpdate(oldProps as Props, newProps as Props);
+    });
     eventBus.on(Block.EVENTS.FLOW_RENDER, this._render.bind(this));
   }
 
@@ -81,11 +83,10 @@ export default class Block {
   private _render(): void {
     const block = this.render();
     if (this._element && typeof block === 'string') {
-
       this._unbindEvents();
-      
+
       this._element.innerHTML = block;
-      
+
       this._bindEvents();
     }
   }
@@ -141,7 +142,6 @@ export default class Block {
       this._events = {};
     }
   }
-
 
   show(): void {
     if (this._element) {

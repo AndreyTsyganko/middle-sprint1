@@ -122,17 +122,17 @@ export default class ProfilePage extends Block {
 
       const user = await api.getUser();
       console.log('User data loaded:', user);
-      
+
       this.updateFormFields(user);
-      
+
       if (user.avatar) {
         this.props.avatar.setProps({ src: user.avatar });
       }
-      
+
       this.setProps({ userData: user });
     } catch (error: any) {
       console.error('Failed to load user data:', error);
-      alert('Ошибка загрузки профиля: ' + error.message);
+      alert(`Ошибка загрузки профиля: ${error.message}`);
     }
   }
 
@@ -140,7 +140,7 @@ export default class ProfilePage extends Block {
     Object.keys(this.fields).forEach((key) => {
       const field = this.fields[key];
       const fieldName = field.props.name;
-      
+
       if (user[fieldName] !== undefined && user[fieldName] !== null) {
         field.setProps({ value: user[fieldName] });
       }
@@ -165,10 +165,10 @@ export default class ProfilePage extends Block {
       Object.values(this.fields).forEach((field) => {
         const value = field.getValue();
         const fieldName = field.props.name;
-        
+
         if (fieldName !== 'oldPassword' && fieldName !== 'newPassword') {
           data[fieldName] = value;
-          
+
           if (!value.trim()) {
             field.setError('Это поле обязательно');
             isValid = false;
@@ -191,36 +191,35 @@ export default class ProfilePage extends Block {
       };
 
       const updatedUser = await api.updateProfile(profileData);
-      
+
       const oldPassword = this.fields.oldPassword.getValue();
       const newPassword = this.fields.newPassword.getValue();
-      
+
       if (oldPassword && newPassword) {
         if (newPassword.length < 6) {
           this.fields.newPassword.setError('Новый пароль должен быть не менее 6 символов');
           this.props.saveButton.setProps({ text: 'Сохранить', disabled: false });
           return;
         }
-        
+
         await api.updatePassword(oldPassword, newPassword);
-        
+
         this.fields.oldPassword.setProps({ value: '' });
         this.fields.newPassword.setProps({ value: '' });
       }
 
       this.updateFormFields(updatedUser);
-      
+
       this.showSuccessMessage('Профиль успешно сохранен!');
-      
+
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       if (this.props.onSave) {
         this.props.onSave(updatedUser);
       }
-      
     } catch (error: any) {
       console.error('Failed to save profile:', error);
-      alert('Ошибка сохранения: ' + error.message);
+      alert(`Ошибка сохранения: ${error.message}`);
     } finally {
       this.props.saveButton.setProps({ text: 'Сохранить', disabled: false });
     }
@@ -229,19 +228,19 @@ export default class ProfilePage extends Block {
   async handleAvatarChange(file: File): Promise<void> {
     try {
       const updatedUser = await api.updateAvatar(file);
-      
+
       this.props.avatar.setProps({ src: updatedUser.avatar });
-      
+
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       this.showSuccessMessage('Аватар успешно обновлен!');
-      
+
       if (this.props.onAvatarChange) {
         this.props.onAvatarChange(file);
       }
     } catch (error: any) {
       console.error('Failed to update avatar:', error);
-      alert('Ошибка обновления аватара: ' + error.message);
+      alert(`Ошибка обновления аватара: ${error.message}`);
     }
   }
 
@@ -259,9 +258,9 @@ export default class ProfilePage extends Block {
       border-radius: 8px;
       z-index: 1000;
     `;
-    
+
     document.body.appendChild(messageEl);
-    
+
     setTimeout(() => {
       if (messageEl.parentNode) {
         messageEl.parentNode.removeChild(messageEl);
@@ -285,9 +284,9 @@ export default class ProfilePage extends Block {
         </div>
         <div class="auth-form profile-form">
           ${Object.values(this.fields)
-            .filter((field) => !field.props.name.includes('Password'))
-            .map((field) => field.render())
-            .join('')}
+    .filter((field) => !field.props.name.includes('Password'))
+    .map((field) => field.render())
+    .join('')}
           
           <div class="password-section">
             <h3 class="password-title">Смена пароля</h3>

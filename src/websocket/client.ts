@@ -48,7 +48,7 @@ class ApiClient {
 
     const token = localStorage.getItem('authToken');
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
 
     return headers;
@@ -62,7 +62,7 @@ class ApiClient {
       } catch {
         errorData = { reason: response.responseText || response.statusText || 'Unknown error' };
       }
-      
+
       throw new Error(errorData.reason || `HTTP ${response.status}`);
     }
 
@@ -76,19 +76,19 @@ class ApiClient {
   async login(login: string, password: string): Promise<UserData> {
     try {
       console.log('API login called:', login);
-      
+
       const response = await this.http.post('/auth/signin', {
         data: { login, password },
         headers: this.getHeaders(),
       });
 
       await this.handleResponse<any>(response);
-      
+
       const user = await this.getUser();
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('authChecked', 'true');
       localStorage.setItem('authToken', 'dummy-token');
-      
+
       console.log('Login successful, user data saved');
       return user;
     } catch (error: any) {
@@ -107,16 +107,16 @@ class ApiClient {
   }): Promise<{ id: number }> {
     try {
       console.log('API register called with:', { ...data, password: '***' });
-      
+
       const response = await this.http.post('/auth/signup', {
         data,
         headers: this.getHeaders(),
       });
 
       const result = await this.handleResponse<{ id: number }>(response);
-      
+
       console.log('Registration successful, auto-login...');
-      
+
       try {
         const user = await this.login(data.login, data.password);
         console.log('Auto-login after registration successful');
@@ -195,7 +195,7 @@ class ApiClient {
       const headers: Record<string, string> = {};
       const token = localStorage.getItem('authToken');
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers.Authorization = `Bearer ${token}`;
       }
 
       const response = await this.http.put('/user/profile/avatar', {
@@ -245,7 +245,7 @@ class ApiClient {
       const response = await this.http.get('/chats', {
         headers: this.getHeaders(),
       });
-      
+
       return this.handleResponse<Chat[]>(response);
     } catch (error: any) {
       console.error('Get chats error:', error);

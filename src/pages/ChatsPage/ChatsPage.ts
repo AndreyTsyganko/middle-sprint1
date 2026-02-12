@@ -31,12 +31,19 @@ interface ChatsPageProps {
 
 export default class ChatsPage extends Block {
   private chats: Chat[] = [];
+
   private selectedChatId: number | null = null;
+
   private messages: any[] = [];
+
   private chatUsersList: ChatUser[] = [];
+
   private currentUser: any = null;
+
   private profileModal: ProfileModal | null = null;
+
   private isModalOpen: boolean = false;
+
   private eventHandlersAttached: boolean = false;
 
   constructor(props: ChatsPageProps = {}) {
@@ -75,13 +82,13 @@ export default class ChatsPage extends Block {
       }
 
       console.log('Current user loaded for ChatsPage:', this.currentUser);
-      
+
       if (this.currentUser?.id) {
         localStorage.setItem('userId', this.currentUser.id.toString());
       }
     } catch (error: any) {
       console.error('Failed to load current user:', error.message);
-      
+
       if (!api.isAuthenticated()) {
         console.log('User not authenticated, redirecting to login');
         if ((window as any).appRouter) {
@@ -89,13 +96,13 @@ export default class ChatsPage extends Block {
         }
         return;
       }
-      
-      this.currentUser = { 
+
+      this.currentUser = {
         id: localStorage.getItem('userId') || 0,
         login: localStorage.getItem('userLogin') || 'User',
         first_name: 'Пользователь',
         second_name: '',
-        avatar: '/ui/default-avatar.jpg'
+        avatar: '/ui/default-avatar.jpg',
       };
     }
   }
@@ -122,7 +129,7 @@ export default class ChatsPage extends Block {
         return;
       }
 
-      const chatItems = this.chats.map((chat) => new ChatItem({
+      const chatItems = this.chats.map((chat: any) => new ChatItem({
         id: chat.id,
         title: chat.title,
         avatar: this.fixAvatarUrl(chat.avatar),
@@ -132,7 +139,7 @@ export default class ChatsPage extends Block {
         onClick: (id: number) => {
           console.log(`Chat item clicked via ChatItem: ${id}`);
           this.handleChatSelect(id);
-        }
+        },
       }));
 
       this.setProps({ chatItems });
@@ -154,7 +161,7 @@ export default class ChatsPage extends Block {
       const messageInput = this.element?.querySelector('#message') as HTMLInputElement;
       const sendButton = this.element?.querySelector('#sendMessage') as HTMLButtonElement;
       const attachButton = this.element?.querySelector('.attach-button') as HTMLButtonElement;
-      
+
       if (messageInput) {
         messageInput.disabled = !enabled;
         messageInput.placeholder = enabled ? 'Сообщение' : 'Выберите чат для отправки сообщения';
@@ -162,11 +169,11 @@ export default class ChatsPage extends Block {
           messageInput.focus();
         }
       }
-      
+
       if (sendButton) {
         sendButton.disabled = !enabled;
       }
-      
+
       if (attachButton) {
         attachButton.disabled = !enabled;
       }
@@ -177,13 +184,13 @@ export default class ChatsPage extends Block {
     try {
       console.log(`Выбран чат: ${chatId}`);
       this.selectedChatId = chatId;
-      
-      const selectedChat = this.chats.find(chat => chat.id === chatId);
+
+      const selectedChat = this.chats.find((chat) => chat.id === chatId);
       const chatTitle = selectedChat?.title || 'Загрузка...';
-      
-      this.setProps({ 
+
+      this.setProps({
         isChatSelected: true,
-        selectedChatTitle: chatTitle
+        selectedChatTitle: chatTitle,
       });
 
       wsService.disconnect();
@@ -209,20 +216,20 @@ export default class ChatsPage extends Block {
         console.log(`Получение токена для чата ${chatId}...`);
         const tokenResponse = await api.getToken(chatId);
         console.log('WebSocket токен получен:', tokenResponse);
-        
+
         if (tokenResponse.token) {
           const userId = this.currentUser?.id || localStorage.getItem('userId');
           if (!userId) {
             console.error('User ID не найден для WebSocket');
             throw new Error('User ID не найден');
           }
-          
+
           console.log(`Подключение WebSocket: userId=${userId}, chatId=${chatId}, token=${tokenResponse.token.substring(0, 10)}...`);
-          
+
           wsService.connect(
-            chatId, 
-            tokenResponse.token, 
-            this.handleNewWebSocketMessage.bind(this)
+            chatId,
+            tokenResponse.token,
+            this.handleNewWebSocketMessage.bind(this),
           );
         } else {
           console.error('Токен не получен от сервера');
@@ -230,14 +237,14 @@ export default class ChatsPage extends Block {
         }
       } catch (tokenError: any) {
         console.error('Ошибка получения WebSocket токена:', tokenError.message);
-        
+
         const userId = this.currentUser?.id || localStorage.getItem('userId');
         if (userId) {
           console.log('Используем User ID как токен для отладки');
           wsService.connect(
-            chatId, 
-            userId.toString(), 
-            this.handleNewWebSocketMessage.bind(this)
+            chatId,
+            userId.toString(),
+            this.handleNewWebSocketMessage.bind(this),
           );
         } else {
           console.error('User ID не найден для fallback подключения');
@@ -254,45 +261,45 @@ export default class ChatsPage extends Block {
     }
   }
 
-private handleNewWebSocketMessage = (data: any): void => {
-  console.log('Новое WebSocket сообщение:', data);
-  
-  const userId = this.currentUser?.id || localStorage.getItem('userId');
-  
-  if (Array.isArray(data)) {
-    data.forEach((msg: any) => {
-      this.messages.push({
-        id: msg.id,
-        content: msg.content,
-        time: msg.time,
-        user_id: msg.user_id,
-        isMine: msg.user_id?.toString() === userId?.toString()
+  private handleNewWebSocketMessage = (data: any): void => {
+    console.log('Новое WebSocket сообщение:', data);
+
+    const userId = this.currentUser?.id || localStorage.getItem('userId');
+
+    if (Array.isArray(data)) {
+      data.forEach((msg: any) => {
+        this.messages.push({
+          id: msg.id,
+          content: msg.content,
+          time: msg.time,
+          user_id: msg.user_id,
+          isMine: msg.user_id?.toString() === userId?.toString(),
+        });
       });
-    });
-  } else if (data.type === 'message' && data.content) {
-    this.messages.push({
-      id: data.id || Date.now(),
-      content: data.content,
-      time: data.time || new Date().toISOString(),
-      user_id: data.user_id,
-      isMine: data.user_id?.toString() === userId?.toString()
-    }); 
-  }
-  
-  const messagesContainer = this.element?.querySelector('#messagesContainer');
-  if (messagesContainer) {
-    const messagesHtml = this.messages.slice(-20).map((msg: any) => new Message({
-      content: msg.content,
-      time: this.formatTime(msg.time),
-      isMine: msg.user_id?.toString() === userId?.toString(),
-    }).render()).join('');
-    
-    messagesContainer.innerHTML = messagesHtml;
-    setTimeout(() => {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }, 50);
-  }
-}
+    } else if (data.type === 'message' && data.content) {
+      this.messages.push({
+        id: data.id || Date.now(),
+        content: data.content,
+        time: data.time || new Date().toISOString(),
+        user_id: data.user_id,
+        isMine: data.user_id?.toString() === userId?.toString(),
+      });
+    }
+
+    const messagesContainer = this.element?.querySelector('#messagesContainer');
+    if (messagesContainer) {
+      const messagesHtml = this.messages.slice(-20).map((msg: any) => new Message({
+        content: msg.content,
+        time: this.formatTime(msg.time),
+        isMine: msg.user_id?.toString() === userId?.toString(),
+      }).render()).join('');
+
+      messagesContainer.innerHTML = messagesHtml;
+      setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 50);
+    }
+  };
 
   async handleSendMessage(): Promise<void> {
     if (!this.selectedChatId) {
@@ -308,25 +315,24 @@ private handleNewWebSocketMessage = (data: any): void => {
 
     const wsMessage = {
       content: text,
-      type: 'message'
+      type: 'message',
     };
-    
+
     try {
       if (!wsService.isConnected()) {
         alert('WebSocket не подключен. Переподключаемся...');
         await this.handleChatSelect(this.selectedChatId);
         return;
       }
-      
+
       console.log('Отправка сообщения через WebSocket:', wsMessage);
       wsService.send(JSON.stringify(wsMessage));
-      
+
       if (messageInput) {
         messageInput.value = '';
       }
-      
+
       console.log('Сообщение отправлено, ожидаем подтверждения от сервера...');
-      
     } catch (error: any) {
       console.error('Ошибка отправки сообщения:', error);
       alert('Не удалось отправить сообщения. Проверьте подключение.');
@@ -338,7 +344,7 @@ private handleNewWebSocketMessage = (data: any): void => {
       const usersResponse = await api.getChatUsers(chatId);
       this.chatUsersList = (Array.isArray(usersResponse) ? usersResponse : []).map((user: any) => ({
         ...user,
-        avatar: this.fixAvatarUrl(user.avatar)
+        avatar: this.fixAvatarUrl(user.avatar),
       }));
       console.log(`Loaded ${this.chatUsersList.length} users for chat ${chatId}`);
     } catch (error: any) {
@@ -371,7 +377,7 @@ private handleNewWebSocketMessage = (data: any): void => {
       }
     } catch (error: any) {
       console.error('Failed to add user to chat:', error.message);
-      alert('Ошибка добавления пользователя: ' + error.message);
+      alert(`Ошибка добавления пользователя: ${error.message}`);
     }
   }
 
@@ -381,13 +387,13 @@ private handleNewWebSocketMessage = (data: any): void => {
     }
 
     const userList = this.chatUsersList
-      .map(user => `${user.login} (${user.first_name} ${user.second_name})`)
+      .map((user) => `${user.login} (${user.first_name} ${user.second_name})`)
       .join('\n');
 
     const userLogin = prompt(`Введите логин пользователя для удаления:\n\nДоступные пользователи:\n${userList}`);
     if (!userLogin) return;
 
-    const userToRemove = this.chatUsersList.find(user => user.login === userLogin);
+    const userToRemove = this.chatUsersList.find((user) => user.login === userLogin);
     if (!userToRemove) {
       alert('Пользователь не найден в чате');
       return;
@@ -401,7 +407,7 @@ private handleNewWebSocketMessage = (data: any): void => {
         await this.loadChatUsers(this.selectedChatId!);
       } catch (error: any) {
         console.error('Failed to remove user from chat:', error.message);
-        alert('Ошибка удаления пользователя: ' + error.message);
+        alert(`Ошибка удаления пользователя: ${error.message}`);
       }
     }
   }
@@ -432,11 +438,11 @@ private handleNewWebSocketMessage = (data: any): void => {
 
   openProfileModal(): void {
     console.log('Opening profile modal with user data:', this.currentUser);
-    
+
     if (this.isModalOpen) {
       return;
     }
-    
+
     this.isModalOpen = true;
 
     this.profileModal = new ProfileModal({
@@ -448,17 +454,17 @@ private handleNewWebSocketMessage = (data: any): void => {
       },
       onSave: async (data: any) => {
         console.log('ProfileModal onSave callback with data:', data);
-        
+
         try {
           this.currentUser = data;
           console.log('Updated currentUser with new avatar:', this.currentUser);
-          
+
           this.updateUserAvatarGlobally();
-          
+
           this.closeProfileModal();
         } catch (error: any) {
           console.error('Profile update error:', error);
-          alert('Ошибка обновления профиля: ' + error.message);
+          alert(`Ошибка обновления профиля: ${error.message}`);
         }
       },
       onLogout: async () => {
@@ -468,38 +474,38 @@ private handleNewWebSocketMessage = (data: any): void => {
       onDelete: async () => {
         console.log('ProfileModal onDelete callback');
         await this.handleDeleteProfile();
-      }
+      },
     });
-    
+
     this.addModalToDOM();
   }
 
-private updateUserAvatarGlobally(): void {
-  const avatarUrl = this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg');
-  console.log('АВАТАР URL:', avatarUrl);
+  private updateUserAvatarGlobally(): void {
+    const avatarUrl = this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg');
+    console.log('АВАТАР URL:', avatarUrl);
 
-  const myAvatarSelectors = [
-    '.header-avatar-img',
-    '#avatarImage',
-    `.avatar-image[data-user-id="${this.currentUser?.id}"]`,
-    `.chat-avatar-img[data-user-id="${this.currentUser?.id}"]`
-  ];
-  
-  myAvatarSelectors.forEach(selector => {
-    document.querySelectorAll(selector).forEach(img => {
-      const image = img as HTMLImageElement;
-      image.src = avatarUrl;
-      image.loading = 'eager';
-      image.style.objectFit = 'cover';
-      image.style.objectPosition = 'center';
-      console.log('Обновлена аватарка:', selector);
+    const myAvatarSelectors = [
+      '.header-avatar-img',
+      '#avatarImage',
+      `.avatar-image[data-user-id="${this.currentUser?.id}"]`,
+      `.chat-avatar-img[data-user-id="${this.currentUser?.id}"]`,
+    ];
+
+    myAvatarSelectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((img) => {
+        const image = img as HTMLImageElement;
+        image.src = avatarUrl;
+        image.loading = 'eager';
+        image.style.objectFit = 'cover';
+        image.style.objectPosition = 'center';
+        console.log('Обновлена аватарка:', selector);
+      });
     });
-  });
-}
+  }
 
   private addModalToDOM(): void {
     if (!this.profileModal || !this.element) return;
-    
+
     const existingContainer = this.element.querySelector('#profileModalContainer');
     if (existingContainer) {
       existingContainer.remove();
@@ -518,16 +524,16 @@ private updateUserAvatarGlobally(): void {
 
   closeProfileModal(): void {
     console.log('Closing profile modal');
-    
+
     this.isModalOpen = false;
-    
+
     if (this.element) {
       const modalContainer = this.element.querySelector('#profileModalContainer');
       if (modalContainer) {
         modalContainer.remove();
       }
     }
-    
+
     if (this.profileModal) {
       this.profileModal.setProps({ isOpen: false });
       this.profileModal = null;
@@ -543,11 +549,11 @@ private updateUserAvatarGlobally(): void {
       localStorage.removeItem('userLogin');
 
       wsService.disconnect();
-      
+
       console.log('User logged out successfully');
 
       this.closeProfileModal();
-      
+
       if ((window as any).appRouter) {
         (window as any).appRouter.go('/');
       } else {
@@ -555,11 +561,11 @@ private updateUserAvatarGlobally(): void {
       }
     } catch (error: any) {
       console.error('Logout error:', error.message);
-      
+
       localStorage.removeItem('authToken');
       localStorage.removeItem('userId');
       localStorage.removeItem('userLogin');
-      
+
       if ((window as any).appRouter) {
         (window as any).appRouter.go('/');
       } else {
@@ -577,9 +583,9 @@ private updateUserAvatarGlobally(): void {
       localStorage.removeItem('userLogin');
 
       wsService.disconnect();
-      
+
       this.closeProfileModal();
-      
+
       if ((window as any).appRouter) {
         (window as any).appRouter.go('/');
       } else {
@@ -587,7 +593,7 @@ private updateUserAvatarGlobally(): void {
       }
     } catch (error: any) {
       console.error('Delete profile error:', error.message);
-      alert('Ошибка удаления профиля: ' + error.message);
+      alert(`Ошибка удаления профиля: ${error.message}`);
     }
   }
 
@@ -605,7 +611,7 @@ private updateUserAvatarGlobally(): void {
       const response = await api.createChat(title);
       console.log('Chat created:', response);
       await this.loadChats();
-      
+
       if (response.id) {
         setTimeout(() => {
           this.handleChatSelect(response.id);
@@ -613,13 +619,13 @@ private updateUserAvatarGlobally(): void {
       }
     } catch (error: any) {
       console.error('Failed to create chat:', error.message);
-      alert('Ошибка создания чата: ' + error.message);
+      alert(`Ошибка создания чата: ${error.message}`);
     }
   }
 
   componentDidMount(): void {
     console.log('ChatsPage mounted');
-    
+
     if (!this.eventHandlersAttached) {
       this.setupEventDelegation();
       this.eventHandlersAttached = true;
@@ -628,21 +634,20 @@ private updateUserAvatarGlobally(): void {
 
   setupEventDelegation(): void {
     console.log('Setting up event delegation...');
-    
+
     this.element?.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
 
-          const chatItem = target.closest('.chat-item');
-    if (chatItem) {
-      const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
-      if (chatId) {
-        console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
-        this.handleChatSelect(chatId);
-        return;
+      const chatItem = target.closest('.chat-item');
+      if (chatItem) {
+        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
+        if (chatId) {
+          console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
+          this.handleChatSelect(chatId);
+          return;
+        }
       }
-    }
 
-      
       if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
         e.preventDefault();
         console.log('Send button clicked');
@@ -665,7 +670,7 @@ private updateUserAvatarGlobally(): void {
         this.handleRemoveUserFromChat();
       }
     });
-    
+
     this.element?.addEventListener('keypress', (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).id === 'message' && e.key === 'Enter') {
         e.preventDefault();
@@ -676,7 +681,9 @@ private updateUserAvatarGlobally(): void {
   }
 
   render(): string {
-    const { chatItems = [], messageComponents = [], isChatSelected = false, selectedChatTitle = 'Выберите чат' } = this.props;
+    const {
+      chatItems = [], messageComponents = [], isChatSelected = false, selectedChatTitle = 'Выберите чат',
+    } = this.props;
 
     return `
     <main class="chats-page">
@@ -690,7 +697,7 @@ private updateUserAvatarGlobally(): void {
             <button id="createChat" class="create-chat-button">+ Создать чат</button>
           </div>
           <div class="chats-list">
-            ${chatItems.map((chat) => chat.render()).join('')}
+            ${chatItems.map((chat: any) => chat.render()).join('')}
           </div>
         </aside>
         <section class="chat-area">
@@ -715,7 +722,7 @@ private updateUserAvatarGlobally(): void {
             </div>
           </div>
           <div class="messages-container" id="messagesContainer">
-            ${messageComponents.map((msg) => msg.render()).join('')}
+            ${messageComponents.map((msg: any) => msg.render()).join('')}
             ${messageComponents.length === 0 ? `
               <div class="no-messages">
                 <p>${isChatSelected ? 'Сообщений пока нет' : 'Выберите чат для начала общения'}</p>
