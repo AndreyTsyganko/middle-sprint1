@@ -9,32 +9,27 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-
+// Проксирование API
 app.use('/api/v2', createProxyMiddleware({
   target: 'https://ya-praktikum.tech',
   changeOrigin: true,
   pathRewrite: {
     '^/api/v2': '/api/v2',
-  },
-  onProxyReq: (proxyReq, req, res) => {
-    console.log(`[PROXY] ${req.method} ${req.url} -> ${proxyReq.path}`);
-  },
-  onProxyRes: (proxyRes, req, res) => {
-    console.log(`[PROXY] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
   }
 }));
 
-
+// Статические файлы
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.static(__dirname));
 
+// ✅ ИСПРАВЛЕНО: используем middleware вместо app.get('/*')
 app.use((req, res, next) => {
-
+  // Пропускаем API запросы
   if (req.path.startsWith('/api/v2')) {
     return next();
   }
   
-  
+  // Отдаём index.html для всех маршрутов (SPA)
   const indexPath = path.join(__dirname, 'dist', 'index.html');
   
   res.sendFile(indexPath, (err) => {
