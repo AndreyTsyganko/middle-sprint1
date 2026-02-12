@@ -24,9 +24,42 @@ interface ChatUser {
   avatar: string;
 }
 
+interface User {
+  id: number;
+  first_name: string;
+  second_name: string;
+  login: string;
+  email: string;
+  phone: string;
+  avatar: string;
+  display_name?: string;
+}
+
+interface MessageData {
+  id: number;
+  content: string;
+  time: string;
+  user_id: number;
+  isMine?: boolean;
+  type?: string;
+}
+
+interface WebSocketMessage {
+  id?: number;
+  content?: string;
+  time?: string;
+  user_id?: number;
+  type?: string;
+}
+
 interface ChatsPageProps {
   onSendMessage?: (message: string) => void;
   onChatSelect?: (chatId: number) => void;
+  chatItems?: ChatItem[];
+  messageComponents?: Message[];
+  isChatSelected?: boolean;
+  selectedChatTitle?: string;
+  events?: Record<string, EventListener>;
 }
 
 export default class ChatsPage extends Block {
@@ -34,11 +67,11 @@ export default class ChatsPage extends Block {
 
   private selectedChatId: number | null = null;
 
-  private messages: any[] = [];
+  private messages: MessageData[] = [];
 
   private chatUsersList: ChatUser[] = [];
 
-  private currentUser: any = null;
+  private currentUser: User | null = null;
 
   private profileModal: ProfileModal | null = null;
 
@@ -98,11 +131,13 @@ export default class ChatsPage extends Block {
       }
 
       this.currentUser = {
-        id: localStorage.getItem('userId') || 0,
+        id: Number(localStorage.getItem('userId')) || 0,
         login: localStorage.getItem('userLogin') || 'User',
         first_name: 'Пользователь',
         second_name: '',
         avatar: '/ui/default-avatar.jpg',
+        email: '',
+        phone: '',
       };
     }
   }
@@ -129,7 +164,7 @@ export default class ChatsPage extends Block {
         return;
       }
 
-      const chatItems = this.chats.map((chat: any) => new ChatItem({
+      const chatItems = this.chats.map((chat: Chat) => new ChatItem({
         id: chat.id,
         title: chat.title,
         avatar: this.fixAvatarUrl(chat.avatar),
@@ -200,7 +235,7 @@ export default class ChatsPage extends Block {
       await this.loadChatUsers(chatId);
 
       this.messages = [];
-      const messageComponents = this.messages.map((msg: any) => new Message({
+      const messageComponents = this.messages.map((msg: MessageData) => new Message({
         content: msg.content || '',
         time: this.formatTime(msg.time),
         isMine: msg.user_id === this.currentUser?.id,
@@ -218,7 +253,7 @@ export default class ChatsPage extends Block {
         console.log('WebSocket токен получен:', tokenResponse);
 
         if (tokenResponse.token) {
-          const userId = this.currentUser?.id || localStorage.getItem('userId');
+          const userId = this.currentUser?.id || Number(localStorage.getItem('userId'));
           if (!userId) {
             console.error('User ID не найден для WebSocket');
             throw new Error('User ID не найден');
@@ -238,7 +273,7 @@ export default class ChatsPage extends Block {
       } catch (tokenError: any) {
         console.error('Ошибка получения WebSocket токена:', tokenError.message);
 
-        const userId = this.currentUser?.id || localStorage.getItem('userId');
+        const userId = this.currentUser?.id || Number(localStorage.getItem('userId'));
         if (userId) {
           console.log('Используем User ID как токен для отладки');
           wsService.connect(
@@ -253,7 +288,7 @@ export default class ChatsPage extends Block {
       }
 
       if (this.props.onChatSelect) {
-        this.props.onChatSelect(chatId);
+        (this.props as ChatsPageProps).onChatSelect!(chatId);
       }
     } catch (error: any) {
       console.error('Failed to load chat data:', error.message);
@@ -261,18 +296,18 @@ export default class ChatsPage extends Block {
     }
   }
 
-  private handleNewWebSocketMessage = (data: any): void => {
+  private handleNewWebSocketMessage = (data: WebSocketMessage | WebSocketMessage[]): void => {
     console.log('Новое WebSocket сообщение:', data);
 
-    const userId = this.currentUser?.id || localStorage.getItem('userId');
+    const userId = this.currentUser?.id || Number(localStorage.getItem('userId'));
 
     if (Array.isArray(data)) {
-      data.forEach((msg: any) => {
+      data.forEach((msg: WebSocketMessage) => {
         this.messages.push({
-          id: msg.id,
-          content: msg.content,
-          time: msg.time,
-          user_id: msg.user_id,
+          id: msg.id || Date.now(),
+          content: msg.content || '',
+          time: msg.time || new Date().toISOString(),
+          user_id: msg.user_id || 0,
           isMine: msg.user_id?.toString() === userId?.toString(),
         });
       });
@@ -281,17 +316,17 @@ export default class ChatsPage extends Block {
         id: data.id || Date.now(),
         content: data.content,
         time: data.time || new Date().toISOString(),
-        user_id: data.user_id,
+        user_id: data.user_id || 0,
         isMine: data.user_id?.toString() === userId?.toString(),
       });
     }
 
     const messagesContainer = this.element?.querySelector('#messagesContainer');
     if (messagesContainer) {
-      const messagesHtml = this.messages.slice(-20).map((msg: any) => new Message({
+      const messagesHtml = this.messages.slice(-20).map((msg: MessageData) => new Message({
         content: msg.content,
         time: this.formatTime(msg.time),
-        isMine: msg.user_id?.toString() === userId?.toString(),
+        isMine: msg.isMine || false,
       }).render()).join('');
 
       messagesContainer.innerHTML = messagesHtml;
@@ -372,8 +407,8 @@ export default class ChatsPage extends Block {
       const confirmAdd = confirm(`Добавить пользователя ${user.login} (${user.first_name} ${user.second_name}) в чат?`);
 
       if (confirmAdd) {
-        await api.addUsersToChat(this.selectedChatId!, [user.id]);
-        await this.loadChatUsers(this.selectedChatId!);
+        await api.addUsersToChat(this.selectedChatId, [user.id]);
+        await this.loadChatUsers(this.selectedChatId);
       }
     } catch (error: any) {
       console.error('Failed to add user to chat:', error.message);
@@ -403,8 +438,8 @@ export default class ChatsPage extends Block {
 
     if (confirmRemove) {
       try {
-        await api.deleteUsersFromChat(this.selectedChatId!, [userToRemove.id]);
-        await this.loadChatUsers(this.selectedChatId!);
+        await api.deleteUsersFromChat(this.selectedChatId, [userToRemove.id]);
+        await this.loadChatUsers(this.selectedChatId);
       } catch (error: any) {
         console.error('Failed to remove user from chat:', error.message);
         alert(`Ошибка удаления пользователя: ${error.message}`);
@@ -452,7 +487,7 @@ export default class ChatsPage extends Block {
         console.log('ProfileModal onClose callback');
         this.closeProfileModal();
       },
-      onSave: async (data: any) => {
+      onSave: async (data: User) => {
         console.log('ProfileModal onSave callback with data:', data);
 
         try {
@@ -640,7 +675,7 @@ export default class ChatsPage extends Block {
 
       const chatItem = target.closest('.chat-item');
       if (chatItem) {
-        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
+        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0', 10);
         if (chatId) {
           console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
           this.handleChatSelect(chatId);
@@ -681,9 +716,16 @@ export default class ChatsPage extends Block {
   }
 
   render(): string {
+    const props = this.props as ChatsPageProps & {
+      chatItems: ChatItem[];
+      messageComponents: Message[];
+      isChatSelected: boolean;
+      selectedChatTitle: string;
+    };
+    
     const {
       chatItems = [], messageComponents = [], isChatSelected = false, selectedChatTitle = 'Выберите чат',
-    } = this.props;
+    } = props;
 
     return `
     <main class="chats-page">
@@ -697,7 +739,7 @@ export default class ChatsPage extends Block {
             <button id="createChat" class="create-chat-button">+ Создать чат</button>
           </div>
           <div class="chats-list">
-            ${chatItems.map((chat: any) => chat.render()).join('')}
+            ${chatItems.map((chat: ChatItem) => chat.render()).join('')}
           </div>
         </aside>
         <section class="chat-area">
@@ -722,7 +764,7 @@ export default class ChatsPage extends Block {
             </div>
           </div>
           <div class="messages-container" id="messagesContainer">
-            ${messageComponents.map((msg: any) => msg.render()).join('')}
+            ${messageComponents.map((msg: Message) => msg.render()).join('')}
             ${messageComponents.length === 0 ? `
               <div class="no-messages">
                 <p>${isChatSelected ? 'Сообщений пока нет' : 'Выберите чат для начала общения'}</p>

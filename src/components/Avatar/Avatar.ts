@@ -4,13 +4,21 @@ interface AvatarProps {
   src: string;
   size?: 'small' | 'medium' | 'large';
   onChange?: (file: File) => void;
+  events?: Record<string, EventListener>;
 }
 
 export default class Avatar extends Block {
   constructor(props: AvatarProps) {
+    const sizeClasses: Record<string, string> = {
+      small: 'avatar-image-small',
+      medium: 'avatar-image-medium',
+      large: 'avatar-image-large',
+    };
+
     super('div', {
       ...props,
       size: props.size || 'medium',
+      sizeClasses,
       events: {
         change: (event: Event) => {
           const input = event.target as HTMLInputElement;
@@ -25,13 +33,8 @@ export default class Avatar extends Block {
   }
 
   render(): string {
-    const { src, size = 'medium' } = this.props;
-
-const sizeClasses: Record<string, string> = {
-  small: 'avatar-image-small',
-  medium: 'avatar-image-medium',
-  large: 'avatar-image-large',
-};
+    const { src, size = 'medium' } = this.props as AvatarProps & { sizeClasses: Record<string, string> };
+    const sizeClasses = (this.props as any).sizeClasses as Record<string, string>;
 
     return `
       <div class="avatar-container">

@@ -14,27 +14,27 @@ export default class Block {
 
   private _meta: { tagName: string; props: Props };
 
-  private eventBus: () => EventBus;
+  private eventBus: EventBus;
 
   props: Props;
 
   private _events: Record<string, EventListener> = {};
 
   constructor(tagName = 'div', props: Props = {}) {
-    const eventBus = new EventBus();
+    this.eventBus = new EventBus();
     this._meta = { tagName, props };
     this.props = this._makePropsProxy(props);
-    this.eventBus = () => eventBus;
-    this._registerEvents(eventBus);
-    eventBus.emit(Block.EVENTS.INIT);
+    this._registerEvents(this.eventBus);
+    this.eventBus.emit(Block.EVENTS.INIT);
   }
 
   private _registerEvents(eventBus: EventBus): void {
     eventBus.on(Block.EVENTS.INIT, this.init.bind(this));
     eventBus.on(Block.EVENTS.FLOW_CDM, this._componentDidMount.bind(this));
-eventBus.on(Block.EVENTS.FLOW_CDU, (oldProps: unknown, newProps: unknown) => {
-  this._componentDidUpdate(oldProps as Props, newProps as Props);
-});
+    eventBus.on(Block.EVENTS.FLOW_CDU, (args: unknown) => {
+      const [oldProps, newProps] = args as [Props, Props];
+      this._componentDidUpdate(oldProps, newProps);
+    });
     eventBus.on(Block.EVENTS.FLOW_RENDER, this._render.bind(this));
   }
 
@@ -45,7 +45,7 @@ eventBus.on(Block.EVENTS.FLOW_CDU, (oldProps: unknown, newProps: unknown) => {
 
   init(): void {
     this._createResources();
-    this.eventBus().emit(Block.EVENTS.FLOW_RENDER);
+    this.eventBus.emit(Block.EVENTS.FLOW_RENDER);
   }
 
   private _componentDidMount(): void {
@@ -55,13 +55,13 @@ eventBus.on(Block.EVENTS.FLOW_CDU, (oldProps: unknown, newProps: unknown) => {
   componentDidMount(): void {}
 
   dispatchComponentDidMount(): void {
-    this.eventBus().emit(Block.EVENTS.FLOW_CDM);
+    this.eventBus.emit(Block.EVENTS.FLOW_CDM);
   }
 
   private _componentDidUpdate(oldProps: Props, newProps: Props): void {
     const response = this.componentDidUpdate(oldProps, newProps);
     if (response) {
-      this.eventBus().emit(Block.EVENTS.FLOW_RENDER);
+      this.eventBus.emit(Block.EVENTS.FLOW_RENDER);
     }
   }
 
@@ -110,7 +110,7 @@ eventBus.on(Block.EVENTS.FLOW_CDU, (oldProps: unknown, newProps: unknown) => {
       set(target: Props, prop: string, value: any) {
         const oldTarget = { ...target };
         target[prop] = value;
-        self.eventBus().emit(Block.EVENTS.FLOW_CDU, oldTarget, target);
+        self.eventBus.emit(Block.EVENTS.FLOW_CDU, [oldTarget, target]);
         return true;
       },
       deleteProperty() {

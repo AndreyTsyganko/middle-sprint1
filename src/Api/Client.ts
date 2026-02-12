@@ -2,6 +2,61 @@ import HTTPTransport from '../Core/HTTPTransport';
 
 const API_BASE_URL = 'https://ya-praktikum.tech/api/v2';
 
+interface User {
+  id: number;
+  first_name: string;
+  second_name: string;
+  login: string;
+  email: string;
+  phone: string;
+  avatar: string;
+  display_name?: string;
+}
+
+interface RegisterData {
+  first_name: string;
+  second_name: string;
+  login: string;
+  email: string;
+  password: string;
+  phone: string;
+}
+
+interface UpdateProfileData {
+  first_name: string;
+  second_name: string;
+  display_name: string;
+  login: string;
+  email: string;
+  phone: string;
+}
+
+interface Chat {
+  id: number;
+  title: string;
+  avatar: string;
+  last_message?: {
+    user: User;
+    time: string;
+    content: string;
+  };
+  unread_count?: number;
+}
+
+interface TokenResponse {
+  token: string;
+}
+
+interface CreateChatResponse {
+  id: number;
+}
+
+interface ApiError extends Error {
+  status?: number;
+  responseData?: any;
+  reason?: string;
+}
+
 class ApiClient {
   private http: HTTPTransport;
 
@@ -49,11 +104,11 @@ class ApiClient {
       }
 
       const errorMessage = errorData.reason || `HTTP ${xhr.status}`;
-      const apiError = new Error(errorMessage);
+      const apiError = new Error(errorMessage) as ApiError;
 
-      (apiError as any).status = xhr.status;
-      (apiError as any).responseData = errorData;
-      (apiError as any).reason = errorData.reason;
+      apiError.status = xhr.status;
+      apiError.responseData = errorData;
+      apiError.reason = errorData.reason;
 
       throw apiError;
     }
@@ -72,8 +127,8 @@ class ApiClient {
       if (xhr.status === 200) {
         return {} as T;
       }
-      const parseError = new Error('Wrong json format');
-      (parseError as any).status = xhr.status;
+      const parseError = new Error('Wrong json format') as ApiError;
+      parseError.status = xhr.status;
       throw parseError;
     }
   }
@@ -113,14 +168,7 @@ class ApiClient {
     }
   }
 
-  async register(data: {
-    first_name: string;
-    second_name: string;
-    login: string;
-    email: string;
-    password: string;
-    phone: string;
-  }): Promise<void> {
+  async register(data: RegisterData): Promise<void> {
     console.log('API register called with data:', { ...data, password: '***' });
 
     const response = await this.http.post('/auth/signup', {
@@ -149,13 +197,13 @@ class ApiClient {
     }
   }
 
-  async getUser(): Promise<any> {
+  async getUser(): Promise<User> {
     try {
       const response = await this.http.get('/auth/user', {
         headers: this.getHeaders(),
       });
 
-      return this.handleResponse(response);
+      return this.handleResponse<User>(response);
     } catch (error: any) {
       if (error.status === 401 || error.status === 403) {
         localStorage.removeItem('authToken');
@@ -166,23 +214,16 @@ class ApiClient {
     }
   }
 
-  async updateProfile(data: {
-    first_name: string;
-    second_name: string;
-    display_name: string;
-    login: string;
-    email: string;
-    phone: string;
-  }): Promise<any> {
+  async updateProfile(data: UpdateProfileData): Promise<User> {
     const response = await this.http.put('/user/profile', {
       data,
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse(response);
+    return this.handleResponse<User>(response);
   }
 
-  async updateAvatar(file: File): Promise<any> {
+  async updateAvatar(file: File): Promise<User> {
     const formData = new FormData();
     formData.append('avatar', file);
 
@@ -199,7 +240,7 @@ class ApiClient {
     });
 
     console.log('Аватар сохранен! Статус:', response.status);
-    return this.handleResponse(response);
+    return this.handleResponse<User>(response);
   }
 
   async updatePassword(oldPassword: string, newPassword: string): Promise<void> {
@@ -211,38 +252,38 @@ class ApiClient {
     return this.handleResponse<void>(response);
   }
 
-  async searchUsers(login: string): Promise<any[]> {
+  async searchUsers(login: string): Promise<User[]> {
     const response = await this.http.post('/user/search', {
       data: { login },
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<any[]>(response);
+    return this.handleResponse<User[]>(response);
   }
 
-  async getChats(): Promise<any[]> {
+  async getChats(): Promise<Chat[]> {
     const response = await this.http.get('/chats', {
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<any[]>(response);
+    return this.handleResponse<Chat[]>(response);
   }
 
-  async createChat(title: string): Promise<{ id: number }> {
+  async createChat(title: string): Promise<CreateChatResponse> {
     const response = await this.http.post('/chats', {
       data: { title },
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<{ id: number }>(response);
+    return this.handleResponse<CreateChatResponse>(response);
   }
 
-  async getChatUsers(chatId: number): Promise<any[]> {
+  async getChatUsers(chatId: number): Promise<User[]> {
     const response = await this.http.get(`/chats/${chatId}/users`, {
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<any[]>(response);
+    return this.handleResponse<User[]>(response);
   }
 
   async addUsersToChat(chatId: number, users: number[]): Promise<void> {
@@ -263,12 +304,12 @@ class ApiClient {
     return this.handleResponse<void>(response);
   }
 
-  async getToken(chatId: number): Promise<{ token: string }> {
+  async getToken(chatId: number): Promise<TokenResponse> {
     const response = await this.http.post(`/chats/token/${chatId}`, {
       headers: this.getHeaders(),
     });
 
-    const result = await this.handleResponse<{ token: string }>(response);
+    const result = await this.handleResponse<TokenResponse>(response);
 
     if (result.token) {
       this.token = result.token;
@@ -278,7 +319,7 @@ class ApiClient {
     return result;
   }
 
-  async sendMessage(chatId: number, content: string): Promise<any> {
+  async sendMessage(chatId: number, content: string): Promise<{ success: boolean; message: string }> {
     console.log('API: Сообщения отправляются через WebSocket, не через REST API');
     console.log('chatId:', chatId, 'content:', content);
 
