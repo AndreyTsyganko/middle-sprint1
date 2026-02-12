@@ -4,7 +4,7 @@ on:
   pull_request:
     branches:
       - main
-      - sprint_3
+      
 
 jobs:
   test:
