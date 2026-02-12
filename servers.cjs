@@ -26,21 +26,20 @@ app.use('/api/v2', createProxyMiddleware({
 
 
 app.use(express.static(path.join(__dirname, 'dist')));
-
 app.use(express.static(__dirname));
 
-app.get('*', (req, res, next) => {
-  // Пропускаем API запросы
+
+app.get('/*', (req, res) => {
+
   if (req.path.startsWith('/api/v2')) {
-    return next();
+    return res.status(404).send('API endpoint not found');
   }
   
-
   const indexPath = path.join(__dirname, 'dist', 'index.html');
   
-  res.sendFile(indexPath, (err) => {
+  res.sendFile(indexPath, { root: '.' }, (err) => {
     if (err) {
-      res.sendFile(path.join(__dirname, 'index.html'));
+      res.sendFile(path.join(__dirname, 'index.html'), { root: '.' });
     }
   });
 });
