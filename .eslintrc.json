@@ -1,4 +1,4 @@
 {
-  "ignorePatterns": ["**/*"],
+  "root": true,
   "rules": {}
 }
