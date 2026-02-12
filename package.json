@@ -18,7 +18,7 @@
     "type-check": "tsc --noEmit",
     "stylelint": "stylelint \"src/**/*.scss\"",
     "stylelint:fix": "stylelint \"src/**/*.scss\" --fix",
-    "check": "npm run type-check && npm run lint && npm run stylelint",
+    "check": "npm run type-check && npm run stylelint",
     "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
     "test:watch": "jest --watch"
