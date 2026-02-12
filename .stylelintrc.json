@@ -1,7 +1,7 @@
 {
   "extends": "stylelint-config-standard-scss",
   "rules": {
-    "color-hex-case": "lower",
+    "color-hex-case": ["lower", { "message": "Hex colors should be lowercase" }],
     "color-hex-length": null,
     "color-function-notation": null,
     "alpha-value-notation": null,
