@@ -2,6 +2,7 @@ import Block from '../../Core/Block';
 import Avatar from '../../components/Avatar/Avatar';
 import FormField from '../../components/FormField/FormField';
 import Button from '../../components/Button/Button';
+
 import { api } from '../../Api/Client';
 
 interface ProfilePageProps {
@@ -15,9 +16,9 @@ interface ProfilePageProps {
     avatar: string;
   };
   onSave?: (data: any) => void;
+
   onAvatarChange?: (file: File) => void;
 }
-
 export default class ProfilePage extends Block {
   private fields: Record<string, FormField> = {};
 
@@ -111,6 +112,7 @@ export default class ProfilePage extends Block {
     this.loadUserData();
   }
 
+
   async loadUserData(): Promise<void> {
     try {
       if (!api.isAuthenticated()) {
@@ -179,6 +181,7 @@ export default class ProfilePage extends Block {
       if (!isValid) {
         this.props.saveButton.setProps({ text: 'Сохранить', disabled: false });
         return;
+
       }
 
       const profileData = {
@@ -245,6 +248,7 @@ export default class ProfilePage extends Block {
     }
   }
 
+
   showSuccessMessage(message: string): void {
     const messageEl = document.createElement('div');
     messageEl.className = 'success-message';
@@ -272,22 +276,34 @@ export default class ProfilePage extends Block {
   handleBackClick(): void {
     if (window.appRouter) {
       window.appRouter.go('/messenger');
+
     }
   }
 
   render(): string {
+    const avatar = this.props.avatar as Avatar;
+    const saveButton = this.props.saveButton as Button;
+    
+    const nonPasswordFields = Object.values(this.fields).filter((field) => {
+
+      const fieldName = (field.props as { name?: string }).name;
+      return fieldName && !fieldName.includes('Password');
+    });
+
     return `
     <main class="auth-page">
       <div class="auth-card profile-card">
         <h1 class="auth-title">Редактирование профиля</h1>
         <div class="avatar-section">
-          ${this.props.avatar.render()}
+          ${avatar.render()}
         </div>
+
         <div class="auth-form profile-form">
           ${Object.values(this.fields)
             .filter((field) => !field.props.name.includes('Password'))
             .map((field) => field.render())
             .join('')}
+
           
           <div class="password-section">
             <h3 class="password-title">Смена пароля</h3>
@@ -296,8 +312,10 @@ export default class ProfilePage extends Block {
           </div>
           
           <div class="profile-buttons">
+
             ${this.props.saveButton.render()}
             <a href="/messenger" class="auth-link" id="backLink">Назад к чатам</a>
+
           </div>
         </div>
       </div>

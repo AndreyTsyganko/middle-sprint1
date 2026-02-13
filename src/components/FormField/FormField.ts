@@ -1,6 +1,5 @@
 import Block from '../../Core/Block';
 import Input from '../Input/Input';
-
 interface FormFieldProps {
   label: string;
   name: string;
@@ -11,7 +10,6 @@ interface FormFieldProps {
   required?: boolean;
   onInput?: (value: string) => void;
 }
-
 export default class FormField extends Block {
   private input: Input;
 
@@ -43,17 +41,21 @@ export default class FormField extends Block {
   }
 
   setError(error: string): void {
-    this.setProps({ error });
+    this.input.setProps({ error });
   }
 
   render(): string {
-    const { label, required = false, error } = this.props;
+    const label = (this.props.label as string) || '';
+    const required = (this.props.required as boolean) || false;
+    const error = (this.props.error as string) || '';
+    const input = this.props.input as Input;
+    
     return `
       <div class="form-field">
         <label class="form-label">
           ${label}${required ? ' *' : ''}
         </label>
-        ${this.props.input.render()}
+        ${input.render()}
         ${error ? `<div class="form-error">${error}</div>` : ''}
       </div>
     `;
