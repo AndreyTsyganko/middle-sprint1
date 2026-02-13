@@ -10,6 +10,16 @@ interface ProfileModalProps {
   onDelete?: () => void;
 }
 
+interface ProfileModalState {
+  avatar: string;
+  first_name: string;
+  second_name: string;
+  display_name: string;
+  login: string;
+  email: string;
+  phone: string;
+}
+
 export default class ProfileModal extends Block {
   private isDataLoaded = false;
   private isUploading = false;
@@ -36,8 +46,10 @@ export default class ProfileModal extends Block {
 
   componentDidMount(): void {
     console.log('ProfileModal mounted');
+
+    const props = this.props as unknown as ProfileModalProps & ProfileModalState;
     console.log('currentUser:', this.currentUser?.avatar);
-    console.log('props.user:', this.props.user?.avatar);
+    console.log('props.user:', props.user?.avatar);
     this.bindEvents();
     
     if (!this.isDataLoaded && !this.currentUser.avatar) {
@@ -103,36 +115,52 @@ export default class ProfileModal extends Block {
     }
 
     const closeBtn = document.querySelector('.modal-close');
-    if (closeBtn) closeBtn.addEventListener('click', this.handleClose.bind(this));
+    if (closeBtn) {
+      closeBtn.addEventListener('click', this.handleClose.bind(this));
+    }
 
     const form = document.querySelector('#profileForm');
-    if (form) form.addEventListener('submit', this.handleFormSubmit.bind(this));
+    if (form) {
+      form.addEventListener('submit', this.handleFormSubmit.bind(this));
+    }
 
     const logoutBtn = document.querySelector('#logoutButton');
-    if (logoutBtn) logoutBtn.addEventListener('click', this.handleLogout.bind(this));
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', this.handleLogout.bind(this));
+    }
 
     const deleteBtn = document.querySelector('#deleteProfileButton');
-    if (deleteBtn) deleteBtn.addEventListener('click', this.handleDeleteClick.bind(this));
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', this.handleDeleteClick.bind(this));
+    }
 
     const backLink = document.querySelector('#backToChats');
-    if (backLink) backLink.addEventListener('click', this.handleClose.bind(this));
+    if (backLink) {
+      backLink.addEventListener('click', this.handleClose.bind(this));
+    }
   }
 
-  handleClose(e?: Event): void {
+  handleClose = (e?: Event): void => {
     if (e) e.preventDefault();
-    if (this.props.onClose) this.props.onClose!();
+    const props = this.props as unknown as ProfileModalProps;
+    if (props.onClose) {
+      props.onClose();
+    }
   }
 
-  handleFormSubmit(e: Event): void {
+  handleFormSubmit = (e: Event): void => {
     e.preventDefault();
     this.handleSave();
   }
 
-  handleLogout(): void {
-    if (this.props.onLogout) this.props.onLogout!();
+  handleLogout = (): void => {
+    const props = this.props as unknown as ProfileModalProps;
+    if (props.onLogout) {
+      props.onLogout();
+    }
   }
 
-  handleDeleteClick(): void {
+  handleDeleteClick = (): void => {
     alert('Удаление пока не реализовано');
   }
 
@@ -210,13 +238,16 @@ export default class ProfileModal extends Block {
       this.setProps({ user: this.currentUser });
       this.updateGlobalStore();
 
-      if (this.props.onSave) {
+      const props = this.props as unknown as ProfileModalProps;
+      if (props.onSave) {
         console.log('Отправляем в ChatsPage:', this.currentUser.avatar);
-        this.props.onSave(this.currentUser);
+        props.onSave(this.currentUser);
       }
       
       setTimeout(() => {
-        if (this.props.onClose) this.props.onClose!();
+        if (props.onClose) {
+          props.onClose();
+        }
       }, 100);
       
     } catch (error: any) {
@@ -228,7 +259,8 @@ export default class ProfileModal extends Block {
   }
 
   render(): string {
-    const { isOpen = false } = this.props;
+    const props = this.props as unknown as ProfileModalProps;
+    const { isOpen = false } = props;
     if (!isOpen) return '';
 
     const avatar = this.currentUser?.avatar || '/ui/default-avatar.jpg';

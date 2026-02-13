@@ -6,7 +6,6 @@ import { api } from '../../Api/Client';
 import wsService from '../../WebSocketService/WebSocketService';
 import ProfileModal from '../../components/ProfileModal/ProfileModal';
 
-
 interface Chat {
   id: number;
   title: string;
@@ -25,10 +24,16 @@ interface ChatUser {
   login: string;
   avatar: string;
 }
+
 interface ChatsPageProps {
   onSendMessage?: (message: string) => void;
   onChatSelect?: (chatId: number) => void;
+  chatItems?: ChatItem[];
+  messageComponents?: Message[];
+  isChatSelected?: boolean;
+  selectedChatTitle?: string;
 }
+
 export default class ChatsPage extends Block {
   private chats: Chat[] = [];
   private selectedChatId: number | null = null;
@@ -42,12 +47,10 @@ export default class ChatsPage extends Block {
   constructor(props: ChatsPageProps = {}) {
     super('div', {
       ...props,
-
       chatItems: [],
       messageComponents: [],
       isChatSelected: false,
       selectedChatTitle: 'Выберите чат',
-
     });
 
     (window as any).chatsPageInstance = this;
@@ -56,7 +59,6 @@ export default class ChatsPage extends Block {
       this.loadInitialData();
     }, 0);
   }
-
 
   private fixAvatarUrl(avatar: string): string {
     if (!avatar || avatar === '/ui/default-avatar.jpg') return avatar;
@@ -248,8 +250,9 @@ export default class ChatsPage extends Block {
         }
       }
 
-      if (this.props.onChatSelect) {
-        this.props.onChatSelect(chatId);
+      const props = this.props as unknown as ChatsPageProps;
+      if (props.onChatSelect) {
+        props.onChatSelect(chatId);
       }
     } catch (error: any) {
       console.error('Failed to load chat data:', error.message);
@@ -257,45 +260,45 @@ export default class ChatsPage extends Block {
     }
   }
 
-private handleNewWebSocketMessage = (data: any): void => {
-  console.log('Новое WebSocket сообщение:', data);
-  
-  const userId = this.currentUser?.id || localStorage.getItem('userId');
-  
-  if (Array.isArray(data)) {
-    data.forEach((msg: any) => {
-      this.messages.push({
-        id: msg.id,
-        content: msg.content,
-        time: msg.time,
-        user_id: msg.user_id,
-        isMine: msg.user_id?.toString() === userId?.toString()
-      });
-    });
-  } else if (data.type === 'message' && data.content) {
-    this.messages.push({
-      id: data.id || Date.now(),
-      content: data.content,
-      time: data.time || new Date().toISOString(),
-      user_id: data.user_id,
-      isMine: data.user_id?.toString() === userId?.toString()
-    }); 
-  }
-  
-  const messagesContainer = this.element?.querySelector('#messagesContainer');
-  if (messagesContainer) {
-    const messagesHtml = this.messages.slice(-20).map((msg: any) => new Message({
-      content: msg.content,
-      time: this.formatTime(msg.time),
-      isMine: msg.user_id?.toString() === userId?.toString(),
-    }).render()).join('');
+  private handleNewWebSocketMessage = (data: any): void => {
+    console.log('Новое WebSocket сообщение:', data);
     
-    messagesContainer.innerHTML = messagesHtml;
-    setTimeout(() => {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }, 50);
+    const userId = this.currentUser?.id || localStorage.getItem('userId');
+    
+    if (Array.isArray(data)) {
+      data.forEach((msg: any) => {
+        this.messages.push({
+          id: msg.id,
+          content: msg.content,
+          time: msg.time,
+          user_id: msg.user_id,
+          isMine: msg.user_id?.toString() === userId?.toString()
+        });
+      });
+    } else if (data.type === 'message' && data.content) {
+      this.messages.push({
+        id: data.id || Date.now(),
+        content: data.content,
+        time: data.time || new Date().toISOString(),
+        user_id: data.user_id,
+        isMine: data.user_id?.toString() === userId?.toString()
+      }); 
+    }
+    
+    const messagesContainer = this.element?.querySelector('#messagesContainer');
+    if (messagesContainer) {
+      const messagesHtml = this.messages.slice(-20).map((msg: any) => new Message({
+        content: msg.content,
+        time: this.formatTime(msg.time),
+        isMine: msg.user_id?.toString() === userId?.toString(),
+      }).render()).join('');
+      
+      messagesContainer.innerHTML = messagesHtml;
+      setTimeout(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }, 50);
+    }
   }
-}
 
   async handleSendMessage(): Promise<void> {
     if (!this.selectedChatId) {
@@ -375,7 +378,6 @@ private handleNewWebSocketMessage = (data: any): void => {
     } catch (error: any) {
       console.error('Failed to add user to chat:', error.message);
       alert('Ошибка добавления пользователя: ' + error.message);
-
     }
   }
 
@@ -478,28 +480,28 @@ private handleNewWebSocketMessage = (data: any): void => {
     this.addModalToDOM();
   }
 
-private updateUserAvatarGlobally(): void {
-  const avatarUrl = this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg');
-  console.log('АВАТАР URL:', avatarUrl);
+  private updateUserAvatarGlobally(): void {
+    const avatarUrl = this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg');
+    console.log('АВАТАР URL:', avatarUrl);
 
-  const myAvatarSelectors = [
-    '.header-avatar-img',
-    '#avatarImage',
-    `.avatar-image[data-user-id="${this.currentUser?.id}"]`,
-    `.chat-avatar-img[data-user-id="${this.currentUser?.id}"]`
-  ];
-  
-  myAvatarSelectors.forEach(selector => {
-    document.querySelectorAll(selector).forEach(img => {
-      const image = img as HTMLImageElement;
-      image.src = avatarUrl;
-      image.loading = 'eager';
-      image.style.objectFit = 'cover';
-      image.style.objectPosition = 'center';
-      console.log('Обновлена аватарка:', selector);
+    const myAvatarSelectors = [
+      '.header-avatar-img',
+      '#avatarImage',
+      `.avatar-image[data-user-id="${this.currentUser?.id}"]`,
+      `.chat-avatar-img[data-user-id="${this.currentUser?.id}"]`
+    ];
+    
+    myAvatarSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(img => {
+        const image = img as HTMLImageElement;
+        image.src = avatarUrl;
+        image.loading = 'eager';
+        image.style.objectFit = 'cover';
+        image.style.objectPosition = 'center';
+        console.log('Обновлена аватарка:', selector);
+      });
     });
-  });
-}
+  }
 
   private addModalToDOM(): void {
     if (!this.profileModal || !this.element) return;
@@ -636,17 +638,16 @@ private updateUserAvatarGlobally(): void {
     this.element?.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
 
-          const chatItem = target.closest('.chat-item');
-    if (chatItem) {
-      const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
-      if (chatId) {
-        console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
-        this.handleChatSelect(chatId);
-        return;
+      const chatItem = target.closest('.chat-item');
+      if (chatItem) {
+        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
+        if (chatId) {
+          console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
+          this.handleChatSelect(chatId);
+          return;
+        }
       }
-    }
 
-      
       if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
         e.preventDefault();
         console.log('Send button clicked');
@@ -680,24 +681,25 @@ private updateUserAvatarGlobally(): void {
   }
 
   render(): string {
-
-    const { chatItems = [], messageComponents = [], isChatSelected = false, selectedChatTitle = 'Выберите чат' } = this.props;
+    const props = this.props as unknown as ChatsPageProps;
+    const chatItems = props.chatItems || [];
+    const messageComponents = props.messageComponents || [];
+    const isChatSelected = props.isChatSelected || false;
+    const selectedChatTitle = props.selectedChatTitle || 'Выберите чат';
 
     return `
     <main class="chats-page">
       <div class="chats-container">
         <aside class="chats-sidebar">
           <div class="sidebar-header">
-
             <button class="profile-link-button">Мой профиль</button>
-
             <div class="search-container">
               <input type="text" class="search-input" placeholder="Поиск">
             </div>
             <button id="createChat" class="create-chat-button">+ Создать чат</button>
           </div>
           <div class="chats-list">
-            ${chatItems.map((chat) => chat.render()).join('')}
+            ${Array.isArray(chatItems) ? chatItems.map((chat) => chat.render()).join('') : ''}
           </div>
         </aside>
         <section class="chat-area">
@@ -722,8 +724,8 @@ private updateUserAvatarGlobally(): void {
             </div>
           </div>
           <div class="messages-container" id="messagesContainer">
-            ${messageComponents.map((msg) => msg.render()).join('')}
-            ${messageComponents.length === 0 ? `
+            ${Array.isArray(messageComponents) ? messageComponents.map((msg) => msg.render()).join('') : ''}
+            ${(!Array.isArray(messageComponents) || messageComponents.length === 0) ? `
               <div class="no-messages">
                 <p>${isChatSelected ? 'Сообщений пока нет' : 'Выберите чат для начала общения'}</p>
                 <p>${isChatSelected ? 'Начните общение!' : ''}</p>
@@ -750,4 +752,3 @@ private updateUserAvatarGlobally(): void {
     `;
   }
 }
-

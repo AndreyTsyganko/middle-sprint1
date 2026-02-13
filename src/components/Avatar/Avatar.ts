@@ -1,4 +1,5 @@
 import Block from '../../Core/Block';
+
 interface AvatarProps {
   src: string;
   size?: 'small' | 'medium' | 'large';
@@ -25,21 +26,24 @@ export default class Avatar extends Block {
 
   render(): string {
 
-    const { src, size = 'medium' } = this.props;
+    const props = this.props as unknown as AvatarProps & { size: 'small' | 'medium' | 'large' };
+    const { src, size = 'medium' } = props;
     
-    const sizeClasses = {
+    const sizeClasses: Record<'small' | 'medium' | 'large', string> = {
       small: 'avatar-image-small',
       medium: 'avatar-image-medium', 
       large: 'avatar-image-large',
     };
     
+    const validSize = size in sizeClasses ? size as 'small' | 'medium' | 'large' : 'medium';
+    const sizeClass = sizeClasses[validSize];
 
     return `
       <div class="avatar-container">
         <img 
           src="${src}" 
           alt="Аватар" 
-          class="avatar-image ${sizeClasses[size]}"
+          class="avatar-image ${sizeClass}"
           id="avatarImage"
         >
         <label for="avatarInput" class="avatar-change-link">

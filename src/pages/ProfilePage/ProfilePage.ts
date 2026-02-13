@@ -16,9 +16,21 @@ interface ProfilePageProps {
     avatar: string;
   };
   onSave?: (data: any) => void;
-
   onAvatarChange?: (file: File) => void;
+  
+  avatar?: Avatar;
+  saveButton?: Button;
+  email?: FormField;
+  login?: FormField;
+  firstName?: FormField;
+  secondName?: FormField;
+  displayName?: FormField;
+  phone?: FormField;
+  oldPassword?: FormField;
+  newPassword?: FormField;
+  userData?: any;
 }
+
 export default class ProfilePage extends Block {
   private fields: Record<string, FormField> = {};
 
@@ -112,7 +124,6 @@ export default class ProfilePage extends Block {
     this.loadUserData();
   }
 
-
   async loadUserData(): Promise<void> {
     try {
       if (!api.isAuthenticated()) {
@@ -127,8 +138,9 @@ export default class ProfilePage extends Block {
       
       this.updateFormFields(user);
       
-      if (user.avatar) {
-        this.props.avatar.setProps({ src: user.avatar });
+      const props = this.props as unknown as ProfilePageProps;
+      if (user.avatar && props.avatar) {
+        props.avatar.setProps({ src: user.avatar });
       }
       
       this.setProps({ userData: user });
@@ -141,34 +153,43 @@ export default class ProfilePage extends Block {
   updateFormFields(user: any): void {
     Object.keys(this.fields).forEach((key) => {
       const field = this.fields[key];
-      const fieldName = field.props.name;
+
+      const fieldProps = field.props as unknown as { name?: string };
+      const fieldName = fieldProps.name;
       
-      if (user[fieldName] !== undefined && user[fieldName] !== null) {
+      if (fieldName && user[fieldName] !== undefined && user[fieldName] !== null) {
         field.setProps({ value: user[fieldName] });
       }
     });
 
-    if (user.avatar) {
-      this.props.avatar.setProps({ src: user.avatar });
+    const props = this.props as unknown as ProfilePageProps;
+    if (user.avatar && props.avatar) {
+      props.avatar.setProps({ src: user.avatar });
     }
   }
 
   onFieldChange(fieldName: string, value: string): void {
     console.log(`Field ${fieldName} changed:`, value);
+
   }
 
   async handleSave(): Promise<void> {
+    const props = this.props as unknown as ProfilePageProps;
+    
     try {
-      this.props.saveButton.setProps({ text: 'Сохранение...', disabled: true });
+      if (props.saveButton) {
+        props.saveButton.setProps({ text: 'Сохранение...', disabled: true });
+      }
 
       const data: Record<string, string> = {};
       let isValid = true;
 
       Object.values(this.fields).forEach((field) => {
         const value = field.getValue();
-        const fieldName = field.props.name;
+        const fieldProps = field.props as unknown as { name?: string };
+        const fieldName = fieldProps.name;
         
-        if (fieldName !== 'oldPassword' && fieldName !== 'newPassword') {
+        if (fieldName && fieldName !== 'oldPassword' && fieldName !== 'newPassword') {
           data[fieldName] = value;
           
           if (!value.trim()) {
@@ -179,9 +200,10 @@ export default class ProfilePage extends Block {
       });
 
       if (!isValid) {
-        this.props.saveButton.setProps({ text: 'Сохранить', disabled: false });
+        if (props.saveButton) {
+          props.saveButton.setProps({ text: 'Сохранить', disabled: false });
+        }
         return;
-
       }
 
       const profileData = {
@@ -201,7 +223,9 @@ export default class ProfilePage extends Block {
       if (oldPassword && newPassword) {
         if (newPassword.length < 6) {
           this.fields.newPassword.setError('Новый пароль должен быть не менее 6 символов');
-          this.props.saveButton.setProps({ text: 'Сохранить', disabled: false });
+          if (props.saveButton) {
+            props.saveButton.setProps({ text: 'Сохранить', disabled: false });
+          }
           return;
         }
         
@@ -217,37 +241,42 @@ export default class ProfilePage extends Block {
       
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      if (this.props.onSave) {
-        this.props.onSave(updatedUser);
+      if (props.onSave) {
+        props.onSave(updatedUser);
       }
       
     } catch (error: any) {
       console.error('Failed to save profile:', error);
       alert('Ошибка сохранения: ' + error.message);
     } finally {
-      this.props.saveButton.setProps({ text: 'Сохранить', disabled: false });
+      if (props.saveButton) {
+        props.saveButton.setProps({ text: 'Сохранить', disabled: false });
+      }
     }
   }
 
   async handleAvatarChange(file: File): Promise<void> {
+    const props = this.props as unknown as ProfilePageProps;
+    
     try {
       const updatedUser = await api.updateAvatar(file);
       
-      this.props.avatar.setProps({ src: updatedUser.avatar });
+      if (props.avatar) {
+        props.avatar.setProps({ src: updatedUser.avatar });
+      }
       
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       this.showSuccessMessage('Аватар успешно обновлен!');
       
-      if (this.props.onAvatarChange) {
-        this.props.onAvatarChange(file);
+      if (props.onAvatarChange) {
+        props.onAvatarChange(file);
       }
     } catch (error: any) {
       console.error('Failed to update avatar:', error);
       alert('Ошибка обновления аватара: ' + error.message);
     }
   }
-
 
   showSuccessMessage(message: string): void {
     const messageEl = document.createElement('div');
@@ -276,17 +305,17 @@ export default class ProfilePage extends Block {
   handleBackClick(): void {
     if (window.appRouter) {
       window.appRouter.go('/messenger');
-
     }
   }
 
   render(): string {
-    const avatar = this.props.avatar as Avatar;
-    const saveButton = this.props.saveButton as Button;
+    const props = this.props as unknown as ProfilePageProps;
+    const avatar = props.avatar;
+    const saveButton = props.saveButton;
     
     const nonPasswordFields = Object.values(this.fields).filter((field) => {
-
-      const fieldName = (field.props as { name?: string }).name;
+      const fieldProps = field.props as unknown as { name?: string };
+      const fieldName = fieldProps.name;
       return fieldName && !fieldName.includes('Password');
     });
 
@@ -295,15 +324,13 @@ export default class ProfilePage extends Block {
       <div class="auth-card profile-card">
         <h1 class="auth-title">Редактирование профиля</h1>
         <div class="avatar-section">
-          ${avatar.render()}
+          ${avatar?.render() || ''}
         </div>
 
         <div class="auth-form profile-form">
-          ${Object.values(this.fields)
-            .filter((field) => !field.props.name.includes('Password'))
+          ${nonPasswordFields
             .map((field) => field.render())
             .join('')}
-
           
           <div class="password-section">
             <h3 class="password-title">Смена пароля</h3>
@@ -312,10 +339,8 @@ export default class ProfilePage extends Block {
           </div>
           
           <div class="profile-buttons">
-
-            ${this.props.saveButton.render()}
+            ${saveButton?.render() || ''}
             <a href="/messenger" class="auth-link" id="backLink">Назад к чатам</a>
-
           </div>
         </div>
       </div>

@@ -4,10 +4,13 @@ import Button from '../../components/Button/Button';
 
 import { api } from '../../Api/Client';
 
-
 interface LoginPageProps {
   onLogin?: (data: { login: string; password: string }) => void;
+  loginField?: FormField;
+  passwordField?: FormField;
+  loginButton?: Button;
 }
+
 export default class LoginPage extends Block {
   private loginField: FormField;
   private passwordField: FormField;
@@ -65,7 +68,6 @@ export default class LoginPage extends Block {
       return;
     }
 
-
     try {
       loginBtn.textContent = 'Вход...';
       loginBtn.disabled = true;
@@ -113,14 +115,14 @@ export default class LoginPage extends Block {
   handleRegisterClick(): void {
     if (window.appRouter) {
       window.appRouter.go('/sign-up');
-
     }
   }
 
   render(): string {
-    const loginField = this.props.loginField as FormField;
-    const passwordField = this.props.passwordField as FormField;
-    const loginButton = this.props.loginButton as Button;
+    const props = this.props as unknown as LoginPageProps;
+    const loginField = props.loginField;
+    const passwordField = props.passwordField;
+
 
     return `
     <main class="auth-page">
@@ -128,12 +130,11 @@ export default class LoginPage extends Block {
         <h1 class="auth-title">Вход</h1>
 
         <div class="auth-form">
-          ${this.props.loginField!.render()}
-          ${this.props.passwordField!.render()}
+          ${loginField?.render() || ''}
+          ${passwordField?.render() || ''}
           <button class="auth-button" type="button" id="loginBtn">Войти</button>
         </div>
         <a href="/sign-up" class="auth-link" id="registerLink">Нет аккаунта?</a>
-
       </div>
     </main>
     `;

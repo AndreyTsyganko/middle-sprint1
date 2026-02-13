@@ -10,8 +10,10 @@ function queryStringify(data: Record<string, unknown>): string {
     return '';
   }
 
-
-  const params = Object.keys(data).map((key) => `${key}=${encodeURIComponent(data[key])}`).join('&');
+  const params = Object.keys(data)
+    .map((key) => `${key}=${encodeURIComponent(String(data[key]))}`)
+    .join('&');
+    
   return params ? `?${params}` : '';
 }
 
@@ -55,22 +57,19 @@ export default class HTTPTransport {
       withCredentials = true 
     } = options;
 
-
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const fullUrl = this.getFullUrl(url);
       
       let requestUrl = fullUrl;
       if (method === METHODS.GET && data) {
-        const query = queryStringify(data);
-
+        const query = queryStringify(data as Record<string, unknown>);
         if (query) {
           requestUrl += query;
         }
       }
 
       xhr.open(method, requestUrl);
-
       xhr.withCredentials = withCredentials;
       
       console.log(`HTTPTransport: ${method} ${fullUrl}`, {
@@ -78,7 +77,6 @@ export default class HTTPTransport {
         hasData: !!data
       });
       
-      // Таймаут
       if (timeout) {
         xhr.timeout = timeout;
         xhr.ontimeout = () => {
@@ -94,7 +92,6 @@ export default class HTTPTransport {
       xhr.onload = () => {
         console.log(`HTTPTransport: ${method} ${url} - Status: ${xhr.status}`);
         
-
         if (xhr.status === 401) {
           console.error('HTTP 401 Unauthorized - Cookie issue');
           console.log('Response headers:', xhr.getAllResponseHeaders());
@@ -113,17 +110,14 @@ export default class HTTPTransport {
         reject(new Error('Request timeout'));
       };
 
-
       if (method === METHODS.GET || !data) {
         xhr.send();
-
       } else if (data instanceof FormData) {
         xhr.send(data);
       } else {
         const dataToSend = typeof data === 'string' ? data : JSON.stringify(data);
         console.log('HTTPTransport: Sending data:', dataToSend);
         xhr.send(dataToSend);
-
       }
     });
   };

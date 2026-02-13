@@ -1,4 +1,5 @@
 import Block from '../../Core/Block';
+
 interface ChatItemProps {
   id: number;
   title: string;
@@ -8,6 +9,7 @@ interface ChatItemProps {
   unreadCount?: number;
   onClick?: (id: number) => void;
 }
+
 export default class ChatItem extends Block {
   constructor(props: ChatItemProps) {
     super('div', {
@@ -23,17 +25,23 @@ export default class ChatItem extends Block {
   }
 
   render(): string {
-    const { 
-      title = 'Без названия', 
-      avatar = '', 
-      lastMessage = 'Нет сообщений', 
-      time = '', 
-      unreadCount = 0 
-    } = this.props;
+
+    const props = this.props as unknown as ChatItemProps;
+    
+    const title = props.title || 'Без названия';
+    const avatar = props.avatar || '';
+    const lastMessage = props.lastMessage || 'Нет сообщений';
+    const time = props.time || '';
+    const unreadCount = props.unreadCount || 0;
+
+
+    const firstChar = title && typeof title === 'string' && title.length > 0 
+      ? title.charAt(0).toUpperCase() 
+      : '?';
 
     return `
-      <div class="chat-item" data-chat-id="${this.props.id}">
-        <div class="chat-item-avatar" data-initials="${title.charAt(0).toUpperCase()}">
+      <div class="chat-item" data-chat-id="${props.id}">
+        <div class="chat-item-avatar" data-initials="${firstChar}">
           ${avatar ? `<img src="${avatar}" alt="" class="chat-avatar-img">` : ''}
         </div>
         <div class="chat-item-content">
