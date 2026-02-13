@@ -1,0 +1,11 @@
+# Игнорируем все JS/TS файлы
+**/*.js
+**/*.ts
+**/*.tsx
+**/*.jsx
+
+# Игнорируем конкретные папки
+node_modules/
+dist/
+build/
+coverage/
