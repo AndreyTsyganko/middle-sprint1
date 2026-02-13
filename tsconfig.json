@@ -18,5 +18,5 @@
     "strictNullChecks": true,
     "sourceMap": true
   },
-  "include": ["src", "dev-server.js"]
+  "include": ["src", "test", "dev-server.js"]
 }

@@ -155,7 +155,7 @@ class ApiClient {
         headers: this.getHeaders(),
       });
 
-      return this.handleResponse(response);
+      return await this.handleResponse(response);
     } catch (error: any) {
       if (error.status === 401 || error.status === 403) {
         localStorage.removeItem('authToken');
