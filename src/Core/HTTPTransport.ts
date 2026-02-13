@@ -5,10 +5,11 @@ const METHODS = {
   DELETE: 'DELETE',
 };
 
-function queryStringify(data: Record<string, any>): string {
+function queryStringify(data: Record<string, unknown>): string {
   if (!data || typeof data !== 'object') {
     return '';
   }
+
 
   const params = Object.keys(data).map((key) => `${key}=${encodeURIComponent(data[key])}`).join('&');
   return params ? `?${params}` : '';
@@ -54,13 +55,15 @@ export default class HTTPTransport {
       withCredentials = true 
     } = options;
 
+
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const fullUrl = this.getFullUrl(url);
-
+      
       let requestUrl = fullUrl;
       if (method === METHODS.GET && data) {
         const query = queryStringify(data);
+
         if (query) {
           requestUrl += query;
         }
@@ -113,12 +116,14 @@ export default class HTTPTransport {
 
       if (method === METHODS.GET || !data) {
         xhr.send();
+
       } else if (data instanceof FormData) {
         xhr.send(data);
       } else {
         const dataToSend = typeof data === 'string' ? data : JSON.stringify(data);
         console.log('HTTPTransport: Sending data:', dataToSend);
         xhr.send(dataToSend);
+
       }
     });
   };

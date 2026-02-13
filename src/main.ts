@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
 import ChatsPage from './pages/ChatsPage/ChatsPage';
+
 import { api } from './Api/Client';
 
 console.log('App starting...');
@@ -26,13 +27,16 @@ declare global {
     handleLogout: () => Promise<void>;
     isAuthenticated: () => boolean;
     getCurrentUser: () => any;
+
   }
 }
+
 
 window.appRouter = router;
 window.api = api;
 
 console.log('App initialized');
+
 
 async function checkAuth(): Promise<boolean> {
   console.log('Checking authentication...');
@@ -91,6 +95,7 @@ export async function handleLogout(): Promise<void> {
   }
 }
 
+
 async function initApp(): Promise<void> {
   console.log('initApp called');
   
@@ -109,6 +114,7 @@ async function initApp(): Promise<void> {
       console.log(`Authenticated user on public page ${currentPath}, redirecting to /messenger`);
       router.go('/messenger');
       return;
+
     }
     
     if (protectedRoutes.includes(currentPath)) {
@@ -138,6 +144,7 @@ async function initApp(): Promise<void> {
   }
 }
 
+
 export function isAuthenticated(): boolean {
   const user = localStorage.getItem('user');
   const authChecked = localStorage.getItem('authChecked') === 'true';
@@ -153,6 +160,7 @@ export function getCurrentUser(): any {
     } catch {
       return null;
     }
+
   }
   return null;
 }

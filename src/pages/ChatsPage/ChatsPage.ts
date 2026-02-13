@@ -1,9 +1,11 @@
 import Block from '../../Core/Block';
 import ChatItem from '../../components/ChatItem/ChatItem';
 import Message from '../../components/Message/Message';
+
 import { api } from '../../Api/Client';
 import wsService from '../../WebSocketService/WebSocketService';
 import ProfileModal from '../../components/ProfileModal/ProfileModal';
+
 
 interface Chat {
   id: number;
@@ -23,12 +25,10 @@ interface ChatUser {
   login: string;
   avatar: string;
 }
-
 interface ChatsPageProps {
   onSendMessage?: (message: string) => void;
   onChatSelect?: (chatId: number) => void;
 }
-
 export default class ChatsPage extends Block {
   private chats: Chat[] = [];
   private selectedChatId: number | null = null;
@@ -42,10 +42,12 @@ export default class ChatsPage extends Block {
   constructor(props: ChatsPageProps = {}) {
     super('div', {
       ...props,
+
       chatItems: [],
       messageComponents: [],
       isChatSelected: false,
       selectedChatTitle: 'Выберите чат',
+
     });
 
     (window as any).chatsPageInstance = this;
@@ -54,6 +56,7 @@ export default class ChatsPage extends Block {
       this.loadInitialData();
     }, 0);
   }
+
 
   private fixAvatarUrl(avatar: string): string {
     if (!avatar || avatar === '/ui/default-avatar.jpg') return avatar;
@@ -372,6 +375,7 @@ private handleNewWebSocketMessage = (data: any): void => {
     } catch (error: any) {
       console.error('Failed to add user to chat:', error.message);
       alert('Ошибка добавления пользователя: ' + error.message);
+
     }
   }
 
@@ -676,6 +680,7 @@ private updateUserAvatarGlobally(): void {
   }
 
   render(): string {
+
     const { chatItems = [], messageComponents = [], isChatSelected = false, selectedChatTitle = 'Выберите чат' } = this.props;
 
     return `
@@ -683,7 +688,9 @@ private updateUserAvatarGlobally(): void {
       <div class="chats-container">
         <aside class="chats-sidebar">
           <div class="sidebar-header">
+
             <button class="profile-link-button">Мой профиль</button>
+
             <div class="search-container">
               <input type="text" class="search-input" placeholder="Поиск">
             </div>
@@ -743,3 +750,4 @@ private updateUserAvatarGlobally(): void {
     `;
   }
 }
+

@@ -1,5 +1,4 @@
 import Block from '../../Core/Block';
-
 interface MessageProps {
   content: string;
   time: string;
@@ -8,11 +7,17 @@ interface MessageProps {
 
 export default class Message extends Block {
   constructor(props: MessageProps) {
-    super('div', props);
+    super('div', {
+      ...props,
+      events: {},
+    });
   }
 
   render(): string {
-    const { content, time, isMine } = this.props;
+
+    const props = this.props as unknown as MessageProps;
+    const { content, time, isMine } = props;
+    
     return `
       <div class="message ${isMine ? 'message-mine' : 'message-theirs'}">
         <div class="message-content">${content}</div>

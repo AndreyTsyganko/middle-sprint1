@@ -1,12 +1,10 @@
 import Block from '../../Core/Block';
-
 interface ButtonProps {
   text: string;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   onClick?: (event: Event) => void;
 }
-
 export default class Button extends Block {
   constructor(props: ButtonProps) {
     super('button', {
@@ -18,7 +16,9 @@ export default class Button extends Block {
   }
 
   render(): string {
-    const { text, type = 'button', className = '' } = this.props;
+    const props = this.props as unknown as ButtonProps;
+    const { text, type = 'button', className = '' } = props;
+    
     return `
       <button 
         type="${type}" 

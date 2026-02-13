@@ -2,8 +2,18 @@ import Block from '../../Core/Block';
 import FormField from '../../components/FormField/FormField';
 import { api } from '../../Api/Client';
 
+interface RegisterFormData {
+  email: string;
+  login: string;
+  firstName: string;
+  secondName: string;
+  phone: string;
+  password: string;
+  passwordConfirm: string;
+}
+
 interface RegisterPageProps {
-  onRegister?: (data: any) => void;
+  onRegister?: (data: RegisterFormData) => void;
 }
 
 export default class RegisterPage extends Block {
@@ -106,6 +116,7 @@ export default class RegisterPage extends Block {
       </main>
     `;
   }
+
 
   componentDidMount(): void {
     console.log('RegisterPage mounted');
@@ -249,5 +260,6 @@ async handleRegister(): Promise<void> {
     } else {
       window.location.href = '/';
     }
+
   }
 }

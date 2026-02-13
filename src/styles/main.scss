@@ -12,13 +12,11 @@ $link-color: #5b5252;
   box-sizing: border-box;
 }
 
-
 body {
   font-family: Arial, sans-serif;
   background: $background-color; 
   min-height: 100vh;
 }
-
 
 .auth-page {
   display: flex;
@@ -607,6 +605,7 @@ body {
   display: none;
 }
 
+
 .create-chat-button {
   width: 100%;
   padding: 10px;
@@ -904,3 +903,4 @@ body {
   gap: 10px;  
   padding: 10px;
 }
+

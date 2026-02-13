@@ -1,5 +1,4 @@
 import Block from '../../Core/Block';
-
 interface InputProps {
   type?: string;
   name: string;
@@ -23,6 +22,7 @@ export default class Input extends Block {
   }
 
   render(): string {
+    const props = this.props as unknown as InputProps;
     const {
       type = 'text',
       name,
@@ -30,7 +30,7 @@ export default class Input extends Block {
       value = '',
       className = '',
       error = '',
-    } = this.props;
+    } = props;
 
     return `
       <div class="input-wrapper ${className}">

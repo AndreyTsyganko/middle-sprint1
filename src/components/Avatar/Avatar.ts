@@ -1,5 +1,4 @@
 import Block from '../../Core/Block';
-
 interface AvatarProps {
   src: string;
   size?: 'small' | 'medium' | 'large';
@@ -25,6 +24,7 @@ export default class Avatar extends Block {
   }
 
   render(): string {
+
     const { src, size = 'medium' } = this.props;
     
     const sizeClasses = {
@@ -33,6 +33,7 @@ export default class Avatar extends Block {
       large: 'avatar-image-large',
     };
     
+
     return `
       <div class="avatar-container">
         <img 
