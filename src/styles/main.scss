@@ -1,4 +1,4 @@
-/* stylelint-disable color-hex-case */
+
 
 $primary-color: #0048ff;
 $error-color: #ff2f2f;
@@ -35,7 +35,7 @@ body {
   padding: 30px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 0 6px rgb(0, 0, 0, 0.14);
 }
 
 .auth-title {
@@ -127,7 +127,7 @@ body {
   padding: 40px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 0 6px rgb(0, 0, 0, 0.14);
 }
 
 .error-code {
@@ -262,7 +262,7 @@ body {
   height: 800px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 0 6px rgb(0, 0, 0, 0.14);
   overflow: hidden;
 }
 
@@ -304,7 +304,7 @@ body {
   display: inline-block;
   
   &:hover {
-    background-color: rgba(30, 136, 229, 0.1);
+    background-color: rgb(30, 136, 229, 0.1);
   }
 }
 
@@ -521,7 +521,7 @@ body {
   padding: 10px 15px;
   border-radius: 12px;
   position: relative;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   
   &-theirs {
     align-self: flex-start;
@@ -639,7 +639,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -656,7 +656,7 @@ body {
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgb(0, 0, 0, 0.15);
 }
 
 .modal-close {

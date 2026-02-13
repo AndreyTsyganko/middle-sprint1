@@ -3,15 +3,14 @@
   "customSyntax": "postcss-scss",
   "rules": {
     "color-hex-case": null,
+    "color-function-alias-notation": null,
     "color-function-notation": "legacy",
     "alpha-value-notation": "number",
     "color-hex-length": "long",
     "declaration-block-no-redundant-longhand-properties": null,
     "no-descending-specificity": null,
     "function-no-unknown": null,
-    "no-duplicate-selectors": null
-  },
-  "ignoreFiles": [
-    "build/*"
-  ]
+    "no-duplicate-selectors": null,
+    "property-no-deprecated": null
+  }
 }
