@@ -13,7 +13,7 @@ function queryStringify(data: Record<string, unknown>): string {
   const params = Object.keys(data)
     .map((key) => `${key}=${encodeURIComponent(String(data[key]))}`)
     .join('&');
-    
+
   return params ? `?${params}` : '';
 }
 
@@ -37,30 +37,26 @@ export default class HTTPTransport {
     return `${this.baseUrl}${url}`;
   }
 
-  get = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.GET }, options.timeout);
+  get = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.GET }, options.timeout);
 
-  post = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.POST }, options.timeout);
+  post = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.POST }, options.timeout);
 
-  put = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
+  put = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
 
-  delete = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
+  delete = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
 
   request = (url: string, options: Options = {}, timeout = 5000): Promise<XMLHttpRequest> => {
-    const { 
-      method = METHODS.GET, 
-      data, 
+    const {
+      method = METHODS.GET,
+      data,
       headers = {},
-      withCredentials = true 
+      withCredentials = true,
     } = options;
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const fullUrl = this.getFullUrl(url);
-      
+
       let requestUrl = fullUrl;
       if (method === METHODS.GET && data) {
         const query = queryStringify(data as Record<string, unknown>);
@@ -71,12 +67,12 @@ export default class HTTPTransport {
 
       xhr.open(method, requestUrl);
       xhr.withCredentials = withCredentials;
-      
+
       console.log(`HTTPTransport: ${method} ${fullUrl}`, {
         withCredentials: xhr.withCredentials,
-        hasData: !!data
+        hasData: !!data,
       });
-      
+
       if (timeout) {
         xhr.timeout = timeout;
         xhr.ontimeout = () => {
@@ -91,7 +87,7 @@ export default class HTTPTransport {
 
       xhr.onload = () => {
         console.log(`HTTPTransport: ${method} ${url} - Status: ${xhr.status}`);
-        
+
         if (xhr.status === 401) {
           console.error('HTTP 401 Unauthorized - Cookie issue');
           console.log('Response headers:', xhr.getAllResponseHeaders());
@@ -99,7 +95,7 @@ export default class HTTPTransport {
 
         resolve(xhr);
       };
-      
+
       xhr.onerror = () => {
         console.error(`HTTPTransport: Network error for ${method} ${url}`);
         reject(new Error('Network error'));

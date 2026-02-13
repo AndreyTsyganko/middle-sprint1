@@ -17,7 +17,7 @@ interface ProfilePageProps {
   };
   onSave?: (data: any) => void;
   onAvatarChange?: (file: File) => void;
-  
+
   avatar?: Avatar;
   saveButton?: Button;
   email?: FormField;
@@ -135,18 +135,18 @@ export default class ProfilePage extends Block {
 
       const user = await api.getUser();
       console.log('User data loaded:', user);
-      
+
       this.updateFormFields(user);
-      
+
       const props = this.props as unknown as ProfilePageProps;
       if (user.avatar && props.avatar) {
         props.avatar.setProps({ src: user.avatar });
       }
-      
+
       this.setProps({ userData: user });
     } catch (error: any) {
       console.error('Failed to load user data:', error);
-      alert('Ошибка загрузки профиля: ' + error.message);
+      alert(`Ошибка загрузки профиля: ${error.message}`);
     }
   }
 
@@ -156,7 +156,7 @@ export default class ProfilePage extends Block {
 
       const fieldProps = field.props as unknown as { name?: string };
       const fieldName = fieldProps.name;
-      
+
       if (fieldName && user[fieldName] !== undefined && user[fieldName] !== null) {
         field.setProps({ value: user[fieldName] });
       }
@@ -170,12 +170,11 @@ export default class ProfilePage extends Block {
 
   onFieldChange(fieldName: string, value: string): void {
     console.log(`Field ${fieldName} changed:`, value);
-
   }
 
   async handleSave(): Promise<void> {
     const props = this.props as unknown as ProfilePageProps;
-    
+
     try {
       if (props.saveButton) {
         props.saveButton.setProps({ text: 'Сохранение...', disabled: true });
@@ -188,10 +187,10 @@ export default class ProfilePage extends Block {
         const value = field.getValue();
         const fieldProps = field.props as unknown as { name?: string };
         const fieldName = fieldProps.name;
-        
+
         if (fieldName && fieldName !== 'oldPassword' && fieldName !== 'newPassword') {
           data[fieldName] = value;
-          
+
           if (!value.trim()) {
             field.setError('Это поле обязательно');
             isValid = false;
@@ -216,10 +215,10 @@ export default class ProfilePage extends Block {
       };
 
       const updatedUser = await api.updateProfile(profileData);
-      
+
       const oldPassword = this.fields.oldPassword.getValue();
       const newPassword = this.fields.newPassword.getValue();
-      
+
       if (oldPassword && newPassword) {
         if (newPassword.length < 6) {
           this.fields.newPassword.setError('Новый пароль должен быть не менее 6 символов');
@@ -228,26 +227,25 @@ export default class ProfilePage extends Block {
           }
           return;
         }
-        
+
         await api.updatePassword(oldPassword, newPassword);
-        
+
         this.fields.oldPassword.setProps({ value: '' });
         this.fields.newPassword.setProps({ value: '' });
       }
 
       this.updateFormFields(updatedUser);
-      
+
       this.showSuccessMessage('Профиль успешно сохранен!');
-      
+
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       if (props.onSave) {
         props.onSave(updatedUser);
       }
-      
     } catch (error: any) {
       console.error('Failed to save profile:', error);
-      alert('Ошибка сохранения: ' + error.message);
+      alert(`Ошибка сохранения: ${error.message}`);
     } finally {
       if (props.saveButton) {
         props.saveButton.setProps({ text: 'Сохранить', disabled: false });
@@ -257,24 +255,24 @@ export default class ProfilePage extends Block {
 
   async handleAvatarChange(file: File): Promise<void> {
     const props = this.props as unknown as ProfilePageProps;
-    
+
     try {
       const updatedUser = await api.updateAvatar(file);
-      
+
       if (props.avatar) {
         props.avatar.setProps({ src: updatedUser.avatar });
       }
-      
+
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       this.showSuccessMessage('Аватар успешно обновлен!');
-      
+
       if (props.onAvatarChange) {
         props.onAvatarChange(file);
       }
     } catch (error: any) {
       console.error('Failed to update avatar:', error);
-      alert('Ошибка обновления аватара: ' + error.message);
+      alert(`Ошибка обновления аватара: ${error.message}`);
     }
   }
 
@@ -292,9 +290,9 @@ export default class ProfilePage extends Block {
       border-radius: 8px;
       z-index: 1000;
     `;
-    
+
     document.body.appendChild(messageEl);
-    
+
     setTimeout(() => {
       if (messageEl.parentNode) {
         messageEl.parentNode.removeChild(messageEl);
@@ -310,9 +308,9 @@ export default class ProfilePage extends Block {
 
   render(): string {
     const props = this.props as unknown as ProfilePageProps;
-    const avatar = props.avatar;
-    const saveButton = props.saveButton;
-    
+    const { avatar } = props;
+    const { saveButton } = props;
+
     const nonPasswordFields = Object.values(this.fields).filter((field) => {
       const fieldProps = field.props as unknown as { name?: string };
       const fieldName = fieldProps.name;
@@ -329,8 +327,8 @@ export default class ProfilePage extends Block {
 
         <div class="auth-form profile-form">
           ${nonPasswordFields
-            .map((field) => field.render())
-            .join('')}
+    .map((field) => field.render())
+    .join('')}
           
           <div class="password-section">
             <h3 class="password-title">Смена пароля</h3>

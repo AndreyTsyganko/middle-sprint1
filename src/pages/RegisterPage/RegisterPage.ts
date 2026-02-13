@@ -91,7 +91,7 @@ export default class RegisterPage extends Block {
 
   render(): string {
     const props = this.props as unknown as RegisterPageProps;
-    
+
     return `
       <main class="auth-page">
         <div class="auth-card">
@@ -127,7 +127,7 @@ export default class RegisterPage extends Block {
 
   componentDidMount(): void {
     console.log('RegisterPage mounted');
-    
+
     const registerButton = this.element?.querySelector('#registerButton');
     if (registerButton) {
       registerButton.addEventListener('click', (e) => {
@@ -135,7 +135,7 @@ export default class RegisterPage extends Block {
         this.handleRegister();
       });
     }
-    
+
     const loginLink = this.element?.querySelector('#loginLink');
     if (loginLink) {
       loginLink.addEventListener('click', (e) => {
@@ -147,12 +147,12 @@ export default class RegisterPage extends Block {
 
   async handleRegister(): Promise<void> {
     console.log('Кнопка регистрации нажата!');
-    
+
     const getFieldValue = (name: string): string => {
       const input = this.element?.querySelector(`[name="${name}"]`) as HTMLInputElement;
       return input?.value || '';
     };
-    
+
     const firstName = getFieldValue('first_name');
     const secondName = getFieldValue('second_name');
     const login = getFieldValue('login');
@@ -160,16 +160,16 @@ export default class RegisterPage extends Block {
     const password = getFieldValue('password');
     const passwordConfirm = getFieldValue('password_confirm');
     const phone = getFieldValue('phone');
-    
-    console.log('Данные формы:', { 
-      firstName, 
-      secondName, 
-      login, 
-      email, 
+
+    console.log('Данные формы:', {
+      firstName,
+      secondName,
+      login,
+      email,
       password: password ? '***' : 'empty',
-      phone 
+      phone,
     });
-    
+
     const requiredFields = [
       { name: 'first_name', value: firstName, label: 'Имя' },
       { name: 'second_name', value: secondName, label: 'Фамилия' },
@@ -178,67 +178,66 @@ export default class RegisterPage extends Block {
       { name: 'password', value: password, label: 'Пароль' },
       { name: 'phone', value: phone, label: 'Телефон' },
     ];
-    
+
     const missingFields = requiredFields
-      .filter(field => !field.value?.trim())
-      .map(field => field.label);
-    
+      .filter((field) => !field.value?.trim())
+      .map((field) => field.label);
+
     if (missingFields.length > 0) {
       alert(`Заполните обязательные поля: ${missingFields.join(', ')}`);
       return;
     }
-    
+
     if (password !== passwordConfirm) {
       alert('Пароли не совпадают');
       return;
     }
-    
+
     if (password.length < 6) {
       alert('Пароль должен быть не менее 6 символов');
       return;
     }
-    
+
     try {
       console.log('Отправка данных на сервер...');
-      
+
       const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
       if (button) {
         button.textContent = 'Регистрация...';
         button.disabled = true;
       }
-      
+
       const dataToSend = {
         first_name: firstName.trim(),
         second_name: secondName.trim(),
         login: login.trim(),
         email: email.trim(),
-        password: password,
+        password,
         phone: phone.trim(),
       };
-      
+
       console.log('Данные для API:', { ...dataToSend, password: '***' });
-      
+
       const response = await api.register(dataToSend);
-      
+
       console.log('Регистрация успешна:', response);
-      
+
       if (window.appRouter) {
         window.appRouter.go('/');
       } else {
         window.location.href = '/';
       }
-      
     } catch (error: any) {
       console.error('Ошибка регистрации:', error);
-      
+
       let errorMessage = 'Ошибка регистрации';
       if (error.message && error.message.includes('400')) {
-        errorMessage = 'Некорректные данные. Проверьте:\n' +
-          '- Email должен быть валидным\n' +
-          '- Логин должен быть от 3 символов\n' +
-          '- Имя и фамилия должны содержать только буквы\n' +
-          '- Телефон должен быть в формате +79999999999\n' +
-          '- Пароль должен быть не менее 6 символов';
+        errorMessage = 'Некорректные данные. Проверьте:\n'
+          + '- Email должен быть валидным\n'
+          + '- Логин должен быть от 3 символов\n'
+          + '- Имя и фамилия должны содержать только буквы\n'
+          + '- Телефон должен быть в формате +79999999999\n'
+          + '- Пароль должен быть не менее 6 символов';
       } else if (error.message && error.message.includes('409')) {
         errorMessage = 'Пользователь с таким логином или email уже существует';
       } else if (error.message === 'Wrong json format') {
@@ -248,9 +247,9 @@ export default class RegisterPage extends Block {
       } else {
         errorMessage = error.message || 'Ошибка регистрации';
       }
-      
+
       alert(errorMessage);
-      
+
       const button = this.element?.querySelector('#registerButton') as HTMLButtonElement;
       if (button) {
         button.textContent = 'Зарегистрироваться';

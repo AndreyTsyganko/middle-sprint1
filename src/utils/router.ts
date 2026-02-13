@@ -1,4 +1,5 @@
 import Block from '../Core/Block';
+
 export interface RouteProps {
   rootQuery: string;
 }
@@ -7,8 +8,11 @@ interface RouteConstructor<T extends Block> {
 }
 class Route<T extends Block> {
   private _pathname: string;
+
   private _componentClass: RouteConstructor<T>;
+
   private _component: T | null;
+
   private _props: RouteProps;
 
   constructor(pathname: string, component: RouteConstructor<T>, props: RouteProps) {
@@ -58,8 +62,11 @@ class Route<T extends Block> {
 }
 export class Router {
   private static __instance: Router;
+
   private routes: Route<Block>[] = [];
+
   private currentRoute: Route<Block> | null = null;
+
   private history = window.history;
 
   constructor(private rootQuery: string = '#app') {
@@ -85,11 +92,11 @@ export class Router {
 
   start(): void {
     console.log('Router started');
-    
+
     window.addEventListener('click', (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       const link = target.closest('a');
-      
+
       if (link && link.getAttribute('href')) {
         event.preventDefault();
         const href = link.getAttribute('href');
@@ -100,11 +107,10 @@ export class Router {
     });
 
     window.addEventListener('popstate', () => {
-      const pathname = window.location.pathname;
+      const { pathname } = window.location;
       console.log('Browser navigation to:', pathname);
       this._onRoute(pathname);
     });
-
 
     const initialPath = window.location.pathname;
     console.log('Initial path:', initialPath);
@@ -113,17 +119,17 @@ export class Router {
 
   private _onRoute(pathname: string): void {
     console.log(`Router._onRoute: ${pathname}`);
-    
+
     const protectedRoutes = ['/settings', '/messenger'];
-    
+
     const publicRoutes = ['/', '/signup'];
-    
+
     const isProtectedRoute = protectedRoutes.includes(pathname);
     const isPublicRoute = publicRoutes.includes(pathname);
     const isAuthenticated = !!localStorage.getItem('authToken');
-    
+
     console.log(`Auth check: route=${pathname}, protected=${isProtectedRoute}, public=${isPublicRoute}, authenticated=${isAuthenticated}`);
-    
+
     if (isProtectedRoute && !isAuthenticated) {
       console.log('No access to protected route, redirecting to login');
       alert('Для доступа к этой странице необходимо войти в систему');
@@ -131,19 +137,19 @@ export class Router {
       this._onRoute('/');
       return;
     }
-    
+
     if (isPublicRoute && isAuthenticated) {
       console.log('Already authenticated, redirecting to messenger');
       this.history.replaceState({}, '', '/messenger');
       this._onRoute('/messenger');
       return;
     }
-    
+
     let route = this.getRoute(pathname);
-    
+
     if (!route) {
       console.log('Route not found:', pathname);
-      
+
       if (isAuthenticated) {
         route = this.getRoute('/messenger');
         if (route) {
@@ -153,7 +159,7 @@ export class Router {
           return;
         }
       }
-      
+
       route = this.getRoute('/');
       if (route) {
         console.log('Redirecting to home page');
@@ -162,12 +168,12 @@ export class Router {
         return;
       }
     }
-    
+
     if (this.currentRoute) {
       console.log(`Leaving current route: ${this.currentRoute.pathname}`);
       this.currentRoute.leave();
     }
-    
+
     if (route) {
       console.log(`Rendering route: ${route.pathname}`);
       this.currentRoute = route;
@@ -179,16 +185,16 @@ export class Router {
 
   go(pathname: string): void {
     console.log(`Router.go called: ${pathname}`);
-    
+
     const protectedRoutes = ['/settings', '/messenger'];
     const publicRoutes = ['/', '/signup'];
-    
+
     const isProtectedRoute = protectedRoutes.includes(pathname);
     const isPublicRoute = publicRoutes.includes(pathname);
     const isAuthenticated = !!localStorage.getItem('authToken');
-    
+
     console.log(`Go auth check: route=${pathname}, protected=${isProtectedRoute}, public=${isPublicRoute}, authenticated=${isAuthenticated}`);
-    
+
     if (isProtectedRoute && !isAuthenticated) {
       console.log('Cannot navigate to protected route without auth');
       alert('Пожалуйста, войдите в систему');
@@ -196,14 +202,14 @@ export class Router {
       this._onRoute('/');
       return;
     }
-    
+
     if (isPublicRoute && isAuthenticated) {
       console.log('Already logged in, redirecting to messenger');
       this.history.replaceState({}, '', '/messenger');
       this._onRoute('/messenger');
       return;
     }
-    
+
     this.history.pushState({}, '', pathname);
     this._onRoute(pathname);
   }
@@ -219,7 +225,7 @@ export class Router {
   }
 
   private getRoute(pathname: string): Route<Block> | undefined {
-    const route = this.routes.find(route => route.match(pathname));
+    const route = this.routes.find((route) => route.match(pathname));
     console.log(`Looking for route "${pathname}": ${route ? 'found' : 'not found'}`);
     return route;
   }

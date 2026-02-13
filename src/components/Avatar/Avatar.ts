@@ -25,16 +25,15 @@ export default class Avatar extends Block {
   }
 
   render(): string {
-
     const props = this.props as unknown as AvatarProps & { size: 'small' | 'medium' | 'large' };
     const { src, size = 'medium' } = props;
-    
+
     const sizeClasses: Record<'small' | 'medium' | 'large', string> = {
       small: 'avatar-image-small',
-      medium: 'avatar-image-medium', 
+      medium: 'avatar-image-medium',
       large: 'avatar-image-large',
     };
-    
+
     const validSize = size in sizeClasses ? size as 'small' | 'medium' | 'large' : 'medium';
     const sizeClass = sizeClasses[validSize];
 

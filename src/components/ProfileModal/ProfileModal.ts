@@ -22,14 +22,17 @@ interface ProfileModalState {
 
 export default class ProfileModal extends Block {
   private isDataLoaded = false;
+
   private isUploading = false;
+
   private currentUser: any = null;
+
   private pendingAvatarFile: File | null = null;
 
   constructor(props: ProfileModalProps = {}) {
     const globalUser = (window as any).store?.get('user');
     const userData = globalUser || props.user || {};
-    
+
     super('div', {
       ...props,
       avatar: userData.avatar || '/ui/default-avatar.jpg',
@@ -38,9 +41,9 @@ export default class ProfileModal extends Block {
       display_name: userData.display_name || '',
       login: userData.login || '',
       email: userData.email || '',
-      phone: userData.phone || ''
+      phone: userData.phone || '',
     });
-    
+
     this.currentUser = { ...userData };
   }
 
@@ -51,7 +54,7 @@ export default class ProfileModal extends Block {
     console.log('currentUser:', this.currentUser?.avatar);
     console.log('props.user:', props.user?.avatar);
     this.bindEvents();
-    
+
     if (!this.isDataLoaded && !this.currentUser.avatar) {
       this.loadUserProfile();
       this.isDataLoaded = true;
@@ -62,11 +65,11 @@ export default class ProfileModal extends Block {
     try {
       this.currentUser = await api.getUser();
       console.log('Загружен профиль с сервера:', this.currentUser);
-      
-      const avatarUrl = this.currentUser.avatar 
-        ? `https://ya-praktikum.tech/api/v2/resources${this.currentUser.avatar}?t=${Date.now()}` 
+
+      const avatarUrl = this.currentUser.avatar
+        ? `https://ya-praktikum.tech/api/v2/resources${this.currentUser.avatar}?t=${Date.now()}`
         : '/ui/default-avatar.jpg';
-      
+
       this.currentUser = { ...this.currentUser, avatar: avatarUrl };
       this.setProps({ user: this.currentUser });
       this.updateGlobalStore();
@@ -96,7 +99,7 @@ export default class ProfileModal extends Block {
 
   private updateGlobalStore(): void {
     try {
-      const store = (window as any).store;
+      const { store } = (window as any);
       if (store && this.currentUser) {
         store.set('user', this.currentUser);
         console.log('Store обновлен:', this.currentUser.avatar);
@@ -108,7 +111,7 @@ export default class ProfileModal extends Block {
 
   bindEvents(): void {
     console.log('Привязка событий');
-    
+
     const avatarInput = document.querySelector('#avatarInput');
     if (avatarInput) {
       avatarInput.addEventListener('change', this.handleAvatarChange.bind(this));
@@ -146,34 +149,34 @@ export default class ProfileModal extends Block {
     if (props.onClose) {
       props.onClose();
     }
-  }
+  };
 
   handleFormSubmit = (e: Event): void => {
     e.preventDefault();
     this.handleSave();
-  }
+  };
 
   handleLogout = (): void => {
     const props = this.props as unknown as ProfileModalProps;
     if (props.onLogout) {
       props.onLogout();
     }
-  }
+  };
 
   handleDeleteClick = (): void => {
     alert('Удаление пока не реализовано');
-  }
+  };
 
   private updateMyAvatarGlobally(): void {
     const myAvatarSelectors = [
       '#avatarImage',
       '.header-avatar-img',
       '.profile-avatar',
-      '.user-avatar.current-user', 
-      '[data-user-id="' + (this.currentUser?.id || localStorage.getItem('userId')) + '"] img'
+      '.user-avatar.current-user',
+      `[data-user-id="${this.currentUser?.id || localStorage.getItem('userId')}"] img`,
     ];
 
-    myAvatarSelectors.forEach(selector => {
+    myAvatarSelectors.forEach((selector) => {
       const images = document.querySelectorAll(selector);
       images.forEach((img: Element) => {
         const image = img as HTMLImageElement;
@@ -187,8 +190,7 @@ export default class ProfileModal extends Block {
   }
 
   async handleSave(): Promise<void> {
-    const getValue = (id: string): string => 
-      (document.querySelector(`#${id}`) as HTMLInputElement)?.value || '';
+    const getValue = (id: string): string => (document.querySelector(`#${id}`) as HTMLInputElement)?.value || '';
 
     const changes = {
       first_name: getValue('first_name'),
@@ -199,9 +201,7 @@ export default class ProfileModal extends Block {
       phone: getValue('phone'),
     };
 
-    const hasTextChanges = Object.keys(changes).some(key => 
-      changes[key as keyof typeof changes] !== this.currentUser?.[key as keyof typeof this.currentUser]
-    );
+    const hasTextChanges = Object.keys(changes).some((key) => changes[key as keyof typeof changes] !== this.currentUser?.[key as keyof typeof this.currentUser]);
     const hasChanges = hasTextChanges || this.pendingAvatarFile !== null;
 
     if (!hasChanges) {
@@ -226,15 +226,15 @@ export default class ProfileModal extends Block {
       }
 
       const updatedUser = await api.getUser();
-      const NEW_AVATAR_URL = updatedUser.avatar 
-        ? `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}` 
+      const NEW_AVATAR_URL = updatedUser.avatar
+        ? `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}`
         : '/ui/default-avatar.jpg';
 
       console.log('НОВЫЙ АВАТАР URL:', NEW_AVATAR_URL);
 
       this.currentUser = { ...updatedUser, avatar: NEW_AVATAR_URL };
       this.updateMyAvatarGlobally();
-      
+
       this.setProps({ user: this.currentUser });
       this.updateGlobalStore();
 
@@ -243,16 +243,15 @@ export default class ProfileModal extends Block {
         console.log('Отправляем в ChatsPage:', this.currentUser.avatar);
         props.onSave(this.currentUser);
       }
-      
+
       setTimeout(() => {
         if (props.onClose) {
           props.onClose();
         }
       }, 100);
-      
     } catch (error: any) {
       console.error('Ошибка сохранения:', error);
-      alert('❌ ' + (error.reason || error.message || 'Ошибка сервера'));
+      alert(`❌ ${error.reason || error.message || 'Ошибка сервера'}`);
     } finally {
       this.isUploading = false;
     }

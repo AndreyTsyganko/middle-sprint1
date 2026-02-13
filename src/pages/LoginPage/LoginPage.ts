@@ -13,6 +13,7 @@ interface LoginPageProps {
 
 export default class LoginPage extends Block {
   private loginField: FormField;
+
   private passwordField: FormField;
 
   constructor(props: LoginPageProps = {}) {
@@ -48,11 +49,11 @@ export default class LoginPage extends Block {
 
   async handleLogin(): Promise<void> {
     console.log('=== START handleLogin ===');
-    
+
     const loginInput = this.element?.querySelector('input[name="login"]') as HTMLInputElement;
     const passwordInput = this.element?.querySelector('input[name="password"]') as HTMLInputElement;
     const loginBtn = this.element?.querySelector('#loginBtn') as HTMLButtonElement;
-    
+
     const login = loginInput?.value?.trim();
     const password = passwordInput?.value?.trim();
 
@@ -71,13 +72,13 @@ export default class LoginPage extends Block {
     try {
       loginBtn.textContent = 'Вход...';
       loginBtn.disabled = true;
-      
+
       console.log('Calling api.login с логином:', login);
       const result = await api.login(login, password);
       console.log('API login result:', result);
-      
+
       console.log('Login successful! Cookies set by server. Redirecting to /messenger');
-      
+
       setTimeout(() => {
         if (window.appRouter) {
           window.appRouter.go('/messenger');
@@ -85,27 +86,24 @@ export default class LoginPage extends Block {
           window.location.href = '/messenger';
         }
       }, 100);
-      
     } catch (error: any) {
       console.error('Login error:', error);
-      
-      if (error.reason === "User already in system" || 
-          error.message?.includes("User already in system") ||
-          error.responseData?.reason?.includes("User already in system")) {
-        
+
+      if (error.reason === 'User already in system'
+          || error.message?.includes('User already in system')
+          || error.responseData?.reason?.includes('User already in system')) {
         console.log('✅ Пользователь уже в системе - перенаправляем в чаты');
-        
+
         if (window.appRouter) {
           window.appRouter.go('/messenger');
         } else {
           window.location.href = '/messenger';
         }
-        
+
         return;
       }
-      
+
       this.passwordField?.setError(error.message || 'Ошибка входа');
-      
     } finally {
       loginBtn.textContent = 'Войти';
       loginBtn.disabled = false;
@@ -120,9 +118,8 @@ export default class LoginPage extends Block {
 
   render(): string {
     const props = this.props as unknown as LoginPageProps;
-    const loginField = props.loginField;
-    const passwordField = props.passwordField;
-
+    const { loginField } = props;
+    const { passwordField } = props;
 
     return `
     <main class="auth-page">
@@ -145,11 +142,11 @@ export default class LoginPage extends Block {
       const user = await api.getUser();
       if (user?.id) {
         console.log('✅ Активная сессия на сервере - редирект в чаты');
-        
+
         localStorage.setItem('authToken', 'authenticated');
         localStorage.setItem('userId', user.id.toString());
         localStorage.setItem('userLogin', user.login);
-        
+
         if (window.appRouter) {
           window.appRouter.go('/messenger');
         } else {
@@ -160,7 +157,7 @@ export default class LoginPage extends Block {
     } catch (error) {
       console.log('Нет активной сессии на сервере');
     }
-    
+
     const loginBtn = this.element?.querySelector('#loginBtn');
     if (loginBtn) {
       loginBtn.addEventListener('click', (e) => {
@@ -169,7 +166,7 @@ export default class LoginPage extends Block {
         this.handleLogin();
       });
     }
-    
+
     const registerLink = this.element?.querySelector('#registerLink');
     if (registerLink) {
       registerLink.addEventListener('click', (e) => {

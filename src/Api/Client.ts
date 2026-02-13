@@ -4,6 +4,7 @@ const API_BASE_URL = 'https://ya-praktikum.tech/api/v2';
 
 class ApiClient {
   private http: HTTPTransport;
+
   private token: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
@@ -15,18 +16,18 @@ class ApiClient {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     const token = this.token || localStorage.getItem('authToken');
     if (token && token !== 'authenticated') {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
-    
+
     return headers;
   }
 
   private async handleResponse<T>(xhr: XMLHttpRequest): Promise<T> {
     console.log('Response status:', xhr.status, 'URL:', xhr.responseURL);
-    
+
     if (xhr.status === 401 || xhr.status === 403) {
       console.warn('Authentication error');
       localStorage.removeItem('authToken');
@@ -34,7 +35,7 @@ class ApiClient {
       localStorage.removeItem('userLogin');
       this.token = null;
     }
-    
+
     if (xhr.status < 200 || xhr.status >= 300) {
       let errorData;
       try {
@@ -46,14 +47,14 @@ class ApiClient {
       } catch {
         errorData = { reason: xhr.responseText || xhr.statusText || `HTTP ${xhr.status}: Unknown error` };
       }
-      
+
       const errorMessage = errorData.reason || `HTTP ${xhr.status}`;
       const apiError = new Error(errorMessage);
-      
+
       (apiError as any).status = xhr.status;
       (apiError as any).responseData = errorData;
       (apiError as any).reason = errorData.reason;
-      
+
       throw apiError;
     }
 
@@ -79,7 +80,7 @@ class ApiClient {
 
   async login(login: string, password: string): Promise<void> {
     console.log('API login called with:', { login, password: password ? '***' : 'empty' });
-    
+
     try {
       const response = await this.http.post('/auth/signin', {
         data: { login, password },
@@ -87,11 +88,11 @@ class ApiClient {
       });
 
       await this.handleResponse(response);
-      
+
       console.log('Login successful');
       localStorage.setItem('authToken', 'authenticated');
       localStorage.setItem('userLogin', login);
-      
+
       try {
         const userData = await this.getUser();
         if (userData.id) {
@@ -103,11 +104,11 @@ class ApiClient {
       }
     } catch (error: any) {
       console.error('Login API error:', error);
-      
+
       if (error.message?.includes('User already in system') && !error.reason) {
         error.reason = 'User already in system';
       }
-      
+
       throw error;
     }
   }
@@ -121,16 +122,16 @@ class ApiClient {
     phone: string;
   }): Promise<void> {
     console.log('API register called with data:', { ...data, password: '***' });
-    
+
     const response = await this.http.post('/auth/signup', {
       data,
       headers: this.getHeaders(),
     });
 
     await this.handleResponse<void>(response);
-    
+
     console.log('Registration successful');
-    
+
     await this.login(data.login, data.password);
   }
 
@@ -193,8 +194,8 @@ class ApiClient {
     const response = await this.http.put('/user/profile/avatar', {
       data: formData,
       headers: token ? {
-        'Authorization': `Bearer ${token}`
-      } : {}
+        Authorization: `Bearer ${token}`,
+      } : {},
     });
 
     console.log('Аватар сохранен! Статус:', response.status);
@@ -223,7 +224,7 @@ class ApiClient {
     const response = await this.http.get('/chats', {
       headers: this.getHeaders(),
     });
-    
+
     return this.handleResponse<any[]>(response);
   }
 
@@ -268,19 +269,19 @@ class ApiClient {
     });
 
     const result = await this.handleResponse<{ token: string }>(response);
-    
+
     if (result.token) {
       this.token = result.token;
       localStorage.setItem(`chatToken_${chatId}`, result.token);
     }
-    
+
     return result;
   }
 
   async sendMessage(chatId: number, content: string): Promise<any> {
     console.log('API: Сообщения отправляются через WebSocket, не через REST API');
     console.log('chatId:', chatId, 'content:', content);
-    
+
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({ success: true, message: 'Сообщение отправлено через WebSocket' });

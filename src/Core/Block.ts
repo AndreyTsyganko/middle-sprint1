@@ -32,17 +32,17 @@ export default class Block {
     eventBus.on(Block.EVENTS.INIT, () => {
       this.init();
     });
-    
+
     eventBus.on(Block.EVENTS.FLOW_CDM, () => {
       this._componentDidMount();
     });
-    
+
     eventBus.on(Block.EVENTS.FLOW_CDU, (...args: unknown[]) => {
       const oldProps = args[0] as Props;
       const newProps = args[1] as Props;
       this._componentDidUpdate(oldProps, newProps);
     });
-    
+
     eventBus.on(Block.EVENTS.FLOW_RENDER, () => {
       this._render();
     });
@@ -67,7 +67,7 @@ export default class Block {
 
   private _addEvents(): void {
     const { events = {} } = this.props as { events?: Record<string, (e: Event) => void> };
-    
+
     if (this._element && events) {
       Object.entries(events).forEach(([eventName, handler]) => {
         if (typeof handler === 'function') {
@@ -79,7 +79,7 @@ export default class Block {
 
   private _removeEvents(): void {
     const { events = {} } = this.props as { events?: Record<string, (e: Event) => void> };
-    
+
     if (this._element && events) {
       Object.entries(events).forEach(([eventName, handler]) => {
         if (typeof handler === 'function') {
@@ -95,7 +95,7 @@ export default class Block {
 
   private _componentDidUpdate(oldProps: Props, newProps: Props): void {
     this._removeEvents();
-    
+
     const response = this.componentDidUpdate(oldProps, newProps);
     if (response) {
       this.eventBus().emit(Block.EVENTS.FLOW_RENDER);
@@ -120,11 +120,10 @@ export default class Block {
   private _render(): void {
     const block = this.render();
     if (this._element && typeof block === 'string') {
-
       this._unbindEvents();
-      
+
       this._element.innerHTML = block;
-      
+
       this._bindEvents();
     }
     this._addEvents();
@@ -181,7 +180,6 @@ export default class Block {
       this._events = {};
     }
   }
-
 
   show(): void {
     if (this._element) {

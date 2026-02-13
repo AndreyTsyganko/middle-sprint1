@@ -1,4 +1,5 @@
 import Block from '../../Core/Block';
+
 interface ButtonProps {
   text: string;
   type?: 'button' | 'submit' | 'reset';
@@ -18,7 +19,7 @@ export default class Button extends Block {
   render(): string {
     const props = this.props as unknown as ButtonProps;
     const { text, type = 'button', className = '' } = props;
-    
+
     return `
       <button 
         type="${type}" 

@@ -19,24 +19,22 @@ export default class ChatItem extends Block {
           if (props.onClick) {
             props.onClick(props.id);
           }
-        }
-      }
+        },
+      },
     });
   }
 
   render(): string {
-
     const props = this.props as unknown as ChatItemProps;
-    
+
     const title = props.title || 'Без названия';
     const avatar = props.avatar || '';
     const lastMessage = props.lastMessage || 'Нет сообщений';
     const time = props.time || '';
     const unreadCount = props.unreadCount || 0;
 
-
-    const firstChar = title && typeof title === 'string' && title.length > 0 
-      ? title.charAt(0).toUpperCase() 
+    const firstChar = title && typeof title === 'string' && title.length > 0
+      ? title.charAt(0).toUpperCase()
       : '?';
 
     return `

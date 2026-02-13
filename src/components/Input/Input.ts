@@ -1,4 +1,5 @@
 import Block from '../../Core/Block';
+
 interface InputProps {
   type?: string;
   name: string;

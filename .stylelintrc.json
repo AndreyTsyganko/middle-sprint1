@@ -4,7 +4,10 @@
     "color-hex-case": "lower",
     "color-hex-length": "long",
     "alpha-value-notation": "number",
-    "color-function-notation": "legacy"
+    "color-function-notation": "legacy",
+    "no-eol-whitespace": true,
+    "no-empty-first-line": true,
+    "indentation": 2
   },
   "ignoreFiles": [
     "build/*"
