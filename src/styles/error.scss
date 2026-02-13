@@ -1,4 +1,3 @@
-
 * {
     margin: 0;
     padding: 0;
@@ -7,13 +6,13 @@
 
 .error-page {
     font-family: Arial, sans-serif;
-    background: #FBFBFB;
+    background: #fbfbfb;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
     padding: 20px;
-    color: #1E1E1E;
+    color: #1e1e1e;
 }
 
 .error-container {
@@ -32,17 +31,17 @@
 }
 
 .error-page[class*="404"] .error-code {
-    color: #3369F3;
+    color: #3369f3;
 }
 
 .error-page[class*="500"] .error-code {
-    color: #FF2F2F;
+    color: #ff2f2f;
 }
 
 .error-title {
     font-size: 24px;
     margin: 20px 0 10px;
-    color: #1E1E1E;
+    color: #1e1e1e;
 }
 
 .error-message {
@@ -53,16 +52,16 @@
 
 .error-link {
     display: inline-block;
-    color: #3369F3;
+    color: #3369f3;
     text-decoration: none;
     font-size: 13px;
     padding: 10px 20px;
-    border: 1px solid #3369F3;
+    border: 1px solid #3369f3;
     border-radius: 8px;
     transition: all 0.3s ease;
 }
 
 .error-link:hover {
-    background: #3369F3;
+    background: #3369f3;
     color: white;
 }
