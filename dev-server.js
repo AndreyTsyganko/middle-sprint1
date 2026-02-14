@@ -1,5 +1,5 @@
 const http = require('http');
-const fs = require('fs');
+const _fs = require('fs');
 const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const express = require('express');
@@ -19,7 +19,7 @@ app.use('/api/v2', createProxyMiddleware({
   },
   onProxyRes: (proxyRes, req, _res) => {
     console.log(`[PROXY] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
-  }
+  },
 }));
 
 app.use(express.static('.'));
