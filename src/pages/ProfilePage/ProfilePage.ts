@@ -177,13 +177,14 @@ export default class ProfilePage extends Block {
       this.setProps({ userData: user });
     } catch (error: any) {
       console.error('Failed to load user data:', error);
-      
+
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
         try {
           const user = JSON.parse(savedUser);
           this.updateFormFields(user);
         } catch (e) {
+          // ignore - используем данные из localStorage как fallback
         }
       }
     }
@@ -202,7 +203,7 @@ export default class ProfilePage extends Block {
 
   updateFormFields(user: any): void {
     if (!this.fields) return;
-    
+
     Object.keys(this.fields).forEach((key) => {
       const field = this.fields[key];
       if (!field) return;
@@ -243,7 +244,7 @@ export default class ProfilePage extends Block {
 
       Object.values(this.fields).forEach((field) => {
         if (!field) return;
-        
+
         const value = field.getValue();
         const fieldProps = field.props as unknown as { name?: string };
         const fieldName = fieldProps.name;
@@ -277,7 +278,7 @@ export default class ProfilePage extends Block {
       const updatedUser = await api.updateProfile(profileData);
 
       if (updatedUser.avatar && !updatedUser.avatar.includes('http')) {
-        updatedUser.avatar = `${RESOURCES_URL}${updatedUser.avatar}?t=${Date.now()}`;    
+        updatedUser.avatar = `${RESOURCES_URL}${updatedUser.avatar}?t=${Date.now()}`;
       }
 
       const oldPassword = this.fields.oldPassword?.getValue();
@@ -313,7 +314,6 @@ export default class ProfilePage extends Block {
       setTimeout(() => {
         this.goToChats();
       }, 1500);
-
     } catch (error: any) {
       console.error('Failed to save profile:', error);
       alert(`Ошибка сохранения: ${error.message}`);

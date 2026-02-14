@@ -27,7 +27,6 @@ declare global {
     handleLogout: () => Promise<void>;
     isAuthenticated: () => boolean;
     getCurrentUser: () => any;
-
   }
 }
 
@@ -63,8 +62,8 @@ export function handleLoginSuccess(): void {
 
   localStorage.setItem('authChecked', 'true');
 
-  checkAuth().then((isAuthenticated) => {
-    if (isAuthenticated) {
+  checkAuth().then((authenticated) => {
+    if (authenticated) {
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
 
       if (redirectPath) {
@@ -102,9 +101,9 @@ async function initApp(): Promise<void> {
 
   console.log('Current path:', currentPath);
 
-  const isAuthenticated = await checkAuth();
+  const authenticated = await checkAuth();
 
-  if (isAuthenticated) {
+  if (authenticated) {
     console.log('User is authenticated');
 
     if (publicRoutes.includes(currentPath)) {
@@ -141,7 +140,6 @@ async function initApp(): Promise<void> {
 export function isAuthenticated(): boolean {
   const user = localStorage.getItem('user');
   const authChecked = localStorage.getItem('authChecked') === 'true';
-
   return authChecked && !!user;
 }
 

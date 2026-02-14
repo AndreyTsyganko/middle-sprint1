@@ -386,7 +386,7 @@ export default class ChatsPage extends Block {
       }
 
       const user = users[0];
-      const confirmAdd = confirm(`Добавить пользователя ${user.login} (${user.first_name} ${user.second_name}) в чат?`);
+      const confirmAdd = window.confirm(`Добавить пользователя ${user.login} в чат?`);
 
       if (confirmAdd) {
         await api.addUsersToChat(this.selectedChatId!, [user.id]);
@@ -416,7 +416,7 @@ export default class ChatsPage extends Block {
       return;
     }
 
-    const confirmRemove = confirm(`Удалить пользователя ${userToRemove.login} из чата?`);
+    const confirmRemove = window.confirm(`Удалить пользователя ${userToRemove.login} из чата?`);
 
     if (confirmRemove) {
       try {
@@ -455,7 +455,7 @@ export default class ChatsPage extends Block {
 
   openProfilePage(): void {
     console.log('Navigating to profile page');
-    
+
     if ((window as any).appRouter) {
       (window as any).appRouter.go('/settings');
     } else {
@@ -480,7 +480,7 @@ export default class ChatsPage extends Block {
 
       const chatItem = target.closest('.chat-item');
       if (chatItem) {
-        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
+        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0', 10);
         if (chatId) {
           console.log('КЛИК ПО ЧАТУ:', chatId);
           this.handleChatSelect(chatId);
@@ -616,4 +616,3 @@ export default class ChatsPage extends Block {
     `;
   }
 }
-

@@ -133,7 +133,6 @@ export default class Block {
 
   private _bindEvents(): void {
     const events = this.props.events as Record<string, (e: Event) => void> | undefined;
-    
     if (events && this._element) {
       Object.entries(events).forEach(([eventName, listener]) => {
         if (listener && typeof listener === 'function') {

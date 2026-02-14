@@ -1,5 +1,5 @@
-
 import { WS_BASE_URL } from '../Api/config';
+
 class WebSocketService {
   private socket: WebSocket | null = null;
 
@@ -16,7 +16,7 @@ class WebSocketService {
       return;
     }
 
-    const wsUrl = `${WS_BASE_URL}/chats/${userId}/${chatId}/${token}`; 
+    const wsUrl = `${WS_BASE_URL}/chats/${userId}/${chatId}/${token}`;
     console.log(`WebSocketService: Подключение к ${wsUrl}`);
 
     this.socket = new WebSocket(wsUrl);
@@ -81,13 +81,17 @@ class WebSocketService {
   }
 
   send(message: string | object): void {
+    let messageToSend: string;
+
     if (typeof message === 'object') {
-      message = JSON.stringify(message);
+      messageToSend = JSON.stringify(message);
+    } else {
+      messageToSend = message;
     }
 
     if (this.socket?.readyState === WebSocket.OPEN) {
-      console.log('WebSocketService: Отправка сообщения', message);
-      this.socket.send(message);
+      console.log('WebSocketService: Отправка сообщения', messageToSend);
+      this.socket.send(messageToSend);
     } else {
       console.error('WebSocketService: WebSocket не подключен');
     }

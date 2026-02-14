@@ -1,65 +1,6 @@
 import Block from '../Core/Block';
+import Route from './route';
 
-export interface RouteProps {
-  rootQuery: string;
-}
-interface RouteConstructor<T extends Block> {
-  new (props: any): T;
-}
-class Route<T extends Block> {
-  private _pathname: string;
-
-  private _componentClass: RouteConstructor<T>;
-
-  private _component: T | null;
-
-  private _props: RouteProps;
-
-  constructor(pathname: string, component: RouteConstructor<T>, props: RouteProps) {
-    this._pathname = pathname;
-    this._componentClass = component;
-    this._component = null;
-    this._props = props;
-  }
-
-  navigate(pathname: string): void {
-    if (this.match(pathname)) {
-      this._pathname = pathname;
-      this.render();
-    }
-  }
-
-  leave(): void {
-    if (this._component) {
-      this._component.hide();
-      this._component = null;
-    }
-  }
-
-  match(pathname: string): boolean {
-    return pathname === this._pathname;
-  }
-
-  render(): void {
-    if (!this._component) {
-      this._component = new this._componentClass({});
-    }
-
-    const root = document.querySelector(this._props.rootQuery);
-    if (root) {
-      root.innerHTML = '';
-      const content = this._component.getContent();
-      if (content) {
-        root.appendChild(content);
-        this._component.dispatchComponentDidMount();
-      }
-    }
-  }
-
-  get pathname(): string {
-    return this._pathname;
-  }
-}
 export class Router {
   private static __instance: Router;
 
@@ -84,9 +25,9 @@ export class Router {
     return Router.__instance;
   }
 
-  use<T extends Block>(pathname: string, component: RouteConstructor<T>): Router {
+  use<T extends Block>(pathname: string, component: new (props: any) => T): Router {
     const route = new Route(pathname, component, { rootQuery: this.rootQuery });
-    this.routes.push(route as Route<Block>);
+    this.routes.push(route);
     return this;
   }
 
@@ -121,16 +62,12 @@ export class Router {
     console.log(`Router._onRoute: ${pathname}`);
 
     const protectedRoutes = ['/settings', '/messenger'];
-
-    const publicRoutes = ['/', '/signup'];
-
-    const isProtectedRoute = protectedRoutes.includes(pathname);
-    const isPublicRoute = publicRoutes.includes(pathname);
+    const publicRoutes = ['/', '/sign-up'];
     const isAuthenticated = !!localStorage.getItem('authToken');
 
-    console.log(`Auth check: route=${pathname}, protected=${isProtectedRoute}, public=${isPublicRoute}, authenticated=${isAuthenticated}`);
+    console.log(`Auth check: route=${pathname}, authenticated=${isAuthenticated}`);
 
-    if (isProtectedRoute && !isAuthenticated) {
+    if (protectedRoutes.includes(pathname) && !isAuthenticated) {
       console.log('No access to protected route, redirecting to login');
       alert('Для доступа к этой странице необходимо войти в систему');
       this.history.replaceState({}, '', '/');
@@ -138,30 +75,28 @@ export class Router {
       return;
     }
 
-    if (isPublicRoute && isAuthenticated) {
+    if (publicRoutes.includes(pathname) && isAuthenticated) {
       console.log('Already authenticated, redirecting to messenger');
       this.history.replaceState({}, '', '/messenger');
       this._onRoute('/messenger');
       return;
     }
 
-    let route = this.getRoute(pathname);
+    const route = this.getRoute(pathname);
 
     if (!route) {
       console.log('Route not found:', pathname);
 
-      if (isAuthenticated) {
-        route = this.getRoute('/messenger');
-        if (route) {
-          console.log('Redirecting authenticated user to messenger');
-          this.history.replaceState({}, '', '/messenger');
-          this._onRoute('/messenger');
-          return;
-        }
+      const messengerRoute = this.getRoute('/messenger');
+      if (messengerRoute && isAuthenticated) {
+        console.log('Redirecting authenticated user to messenger');
+        this.history.replaceState({}, '', '/messenger');
+        this._onRoute('/messenger');
+        return;
       }
 
-      route = this.getRoute('/');
-      if (route) {
+      const homeRoute = this.getRoute('/');
+      if (homeRoute) {
         console.log('Redirecting to home page');
         this.history.replaceState({}, '', '/');
         this._onRoute('/');
@@ -187,15 +122,12 @@ export class Router {
     console.log(`Router.go called: ${pathname}`);
 
     const protectedRoutes = ['/settings', '/messenger'];
-    const publicRoutes = ['/', '/signup'];
-
-    const isProtectedRoute = protectedRoutes.includes(pathname);
-    const isPublicRoute = publicRoutes.includes(pathname);
+    const publicRoutes = ['/', '/sign-up'];
     const isAuthenticated = !!localStorage.getItem('authToken');
 
-    console.log(`Go auth check: route=${pathname}, protected=${isProtectedRoute}, public=${isPublicRoute}, authenticated=${isAuthenticated}`);
+    console.log(`Go auth check: route=${pathname}, authenticated=${isAuthenticated}`);
 
-    if (isProtectedRoute && !isAuthenticated) {
+    if (protectedRoutes.includes(pathname) && !isAuthenticated) {
       console.log('Cannot navigate to protected route without auth');
       alert('Пожалуйста, войдите в систему');
       this.history.replaceState({}, '', '/');
@@ -203,7 +135,7 @@ export class Router {
       return;
     }
 
-    if (isPublicRoute && isAuthenticated) {
+    if (publicRoutes.includes(pathname) && isAuthenticated) {
       console.log('Already logged in, redirecting to messenger');
       this.history.replaceState({}, '', '/messenger');
       this._onRoute('/messenger');
@@ -225,8 +157,8 @@ export class Router {
   }
 
   private getRoute(pathname: string): Route<Block> | undefined {
-    const route = this.routes.find((route) => route.match(pathname));
-    console.log(`Looking for route "${pathname}": ${route ? 'found' : 'not found'}`);
-    return route;
+    const foundRoute = this.routes.find((r) => r.match(pathname));
+    console.log(`Looking for route "${pathname}": ${foundRoute ? 'found' : 'not found'}`);
+    return foundRoute;
   }
 }
