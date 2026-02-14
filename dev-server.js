@@ -1,5 +1,4 @@
 const http = require('http');
-const _fs = require('fs');
 const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const express = require('express');
