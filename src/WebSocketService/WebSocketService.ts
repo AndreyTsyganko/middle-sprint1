@@ -1,3 +1,5 @@
+
+import { WS_BASE_URL } from '../Api/config';
 class WebSocketService {
   private socket: WebSocket | null = null;
 
@@ -14,7 +16,7 @@ class WebSocketService {
       return;
     }
 
-    const wsUrl = `wss://ya-praktikum.tech/ws/chats/${userId}/${chatId}/${token}`;
+    const wsUrl = `${WS_BASE_URL}/chats/${userId}/${chatId}/${token}`; 
     console.log(`WebSocketService: Подключение к ${wsUrl}`);
 
     this.socket = new WebSocket(wsUrl);

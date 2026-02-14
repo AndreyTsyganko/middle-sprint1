@@ -2,6 +2,7 @@ import Block from '../../Core/Block';
 import Avatar from '../../components/Avatar/Avatar';
 import FormField from '../../components/FormField/FormField';
 import Button from '../../components/Button/Button';
+import { RESOURCES_URL } from '../../Api/config';
 
 import { api } from '../../Api/Client';
 
@@ -106,7 +107,7 @@ export default class ProfilePage extends Block {
     super('div', {
       ...props,
       avatar: new Avatar({
-        src: user.avatar || '/ui/default-avatar.jpg',
+        src: user.avatar ? `${RESOURCES_URL}${user.avatar}?t=${Date.now()}` : '/ui/default-avatar.jpg',
         size: 'large',
         onChange: (file: File) => this.handleAvatarChange(file),
       }),
@@ -167,7 +168,7 @@ export default class ProfilePage extends Block {
       console.log('User data loaded:', user);
 
       if (user.avatar && !user.avatar.includes('http')) {
-        user.avatar = `https://ya-praktikum.tech/api/v2/resources${user.avatar}?t=${Date.now()}`;
+        user.avatar = `${RESOURCES_URL}${user.avatar}?t=${Date.now()}`;
       }
 
       this.updateFormFields(user);
@@ -276,7 +277,7 @@ export default class ProfilePage extends Block {
       const updatedUser = await api.updateProfile(profileData);
 
       if (updatedUser.avatar && !updatedUser.avatar.includes('http')) {
-        updatedUser.avatar = `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}`;
+        updatedUser.avatar = `${RESOURCES_URL}${updatedUser.avatar}?t=${Date.now()}`;    
       }
 
       const oldPassword = this.fields.oldPassword?.getValue();
@@ -347,7 +348,7 @@ export default class ProfilePage extends Block {
       const updatedUser = await api.updateAvatar(file);
 
       if (updatedUser.avatar && !updatedUser.avatar.includes('http')) {
-        updatedUser.avatar = `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}`;
+        updatedUser.avatar = `${RESOURCES_URL}${updatedUser.avatar}?t=${Date.now()}`;
       }
 
       if (props.avatar) {

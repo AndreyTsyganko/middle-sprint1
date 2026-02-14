@@ -1,6 +1,7 @@
 import Block from '../../Core/Block';
 import ChatItem from '../../components/ChatItem/ChatItem';
 import Message from '../../components/Message/Message';
+import { RESOURCES_URL } from '../../Api/config';
 
 import { api } from '../../Api/Client';
 import wsService from '../../WebSocketService/WebSocketService';
@@ -65,7 +66,7 @@ export default class ChatsPage extends Block {
   private fixAvatarUrl(avatar: string): string {
     if (!avatar || avatar === '/ui/default-avatar.jpg') return avatar;
     if (avatar.includes('http')) return avatar;
-    return `https://ya-praktikum.tech/api/v2/resources${avatar}?t=${Date.now()}`;
+    return `${RESOURCES_URL}${avatar}?t=${Date.now()}`;
   }
 
   private async loadInitialData(): Promise<void> {

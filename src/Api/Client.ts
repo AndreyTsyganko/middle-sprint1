@@ -1,6 +1,5 @@
 import HTTPTransport from '../Core/HTTPTransport';
-
-const API_BASE_URL = 'https://ya-praktikum.tech/api/v2';
+import { API_BASE_URL } from './config';
 
 class ApiClient {
   private http: HTTPTransport;
