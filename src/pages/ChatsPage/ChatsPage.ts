@@ -4,7 +4,6 @@ import Message from '../../components/Message/Message';
 
 import { api } from '../../Api/Client';
 import wsService from '../../WebSocketService/WebSocketService';
-import ProfileModal from '../../components/ProfileModal/ProfileModal';
 
 interface Chat {
   id: number;
@@ -44,10 +43,6 @@ export default class ChatsPage extends Block {
   private chatUsersList: ChatUser[] = [];
 
   private currentUser: any = null;
-
-  private profileModal: ProfileModal | null = null;
-
-  private isModalOpen: boolean = false;
 
   private eventHandlersAttached: boolean = false;
 
@@ -102,13 +97,28 @@ export default class ChatsPage extends Block {
         return;
       }
 
-      this.currentUser = {
-        id: localStorage.getItem('userId') || 0,
-        login: localStorage.getItem('userLogin') || 'User',
-        first_name: 'Пользователь',
-        second_name: '',
-        avatar: '/ui/default-avatar.jpg',
-      };
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          this.currentUser = JSON.parse(savedUser);
+        } catch (e) {
+          this.currentUser = {
+            id: localStorage.getItem('userId') || 0,
+            login: localStorage.getItem('userLogin') || 'User',
+            first_name: 'Пользователь',
+            second_name: '',
+            avatar: '/ui/default-avatar.jpg',
+          };
+        }
+      } else {
+        this.currentUser = {
+          id: localStorage.getItem('userId') || 0,
+          login: localStorage.getItem('userLogin') || 'User',
+          first_name: 'Пользователь',
+          second_name: '',
+          avatar: '/ui/default-avatar.jpg',
+        };
+      }
     }
   }
 
@@ -442,165 +452,71 @@ export default class ChatsPage extends Block {
     }
   }
 
-  openProfileModal(): void {
-    console.log('Opening profile modal with user data:', this.currentUser);
-
-    if (this.isModalOpen) {
-      return;
+  openProfilePage(): void {
+    console.log('Navigating to profile page');
+    
+    if ((window as any).appRouter) {
+      (window as any).appRouter.go('/settings');
+    } else {
+      window.location.href = '/settings';
     }
+  }
 
-    this.isModalOpen = true;
+  componentDidMount(): void {
+    console.log('ChatsPage mounted');
 
-    this.profileModal = new ProfileModal({
-      isOpen: true,
-      user: this.currentUser,
-      onClose: () => {
-        console.log('ProfileModal onClose callback');
-        this.closeProfileModal();
-      },
-      onSave: async (data: any) => {
-        console.log('ProfileModal onSave callback with data:', data);
+    if (!this.eventHandlersAttached) {
+      this.setupEventDelegation();
+      this.eventHandlersAttached = true;
+    }
+  }
 
-        try {
-          this.currentUser = data;
-          console.log('Updated currentUser with new avatar:', this.currentUser);
+  setupEventDelegation(): void {
+    console.log('Setting up event delegation...');
 
-          this.updateUserAvatarGlobally();
+    this.element?.addEventListener('click', (e: Event) => {
+      const target = e.target as HTMLElement;
 
-          this.closeProfileModal();
-        } catch (error: any) {
-          console.error('Profile update error:', error);
-          alert(`Ошибка обновления профиля: ${error.message}`);
+      const chatItem = target.closest('.chat-item');
+      if (chatItem) {
+        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
+        if (chatId) {
+          console.log('КЛИК ПО ЧАТУ:', chatId);
+          this.handleChatSelect(chatId);
+          return;
         }
-      },
-      onLogout: async () => {
-        console.log('ProfileModal onLogout callback');
-        await this.handleLogout();
-      },
-      onDelete: async () => {
-        console.log('ProfileModal onDelete callback');
-        await this.handleDeleteProfile();
-      },
+      }
+
+      if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
+        e.preventDefault();
+        console.log('Send button clicked');
+        this.handleSendMessage();
+      } else if (target.id === 'createChat' || target.closest('#createChat')) {
+        e.preventDefault();
+        console.log('CREATE CHAT BUTTON CLICKED!');
+        this.handleCreateChat();
+      } else if (target.classList.contains('profile-link-button') || target.closest('.profile-link-button')) {
+        e.preventDefault();
+        console.log('Profile button clicked - navigating to profile page');
+        this.openProfilePage();
+      } else if (target.id === 'addUserToChat' || target.closest('#addUserToChat')) {
+        e.preventDefault();
+        console.log('Add user clicked');
+        this.handleAddUserToChat();
+      } else if (target.id === 'removeUserFromChat' || target.closest('#removeUserFromChat')) {
+        e.preventDefault();
+        console.log('Remove user clicked');
+        this.handleRemoveUserFromChat();
+      }
     });
 
-    this.addModalToDOM();
-  }
-
-  private updateUserAvatarGlobally(): void {
-    const avatarUrl = this.fixAvatarUrl(this.currentUser?.avatar || '/ui/default-avatar.jpg');
-    console.log('АВАТАР URL:', avatarUrl);
-
-    const myAvatarSelectors = [
-      '.header-avatar-img',
-      '#avatarImage',
-      `.avatar-image[data-user-id="${this.currentUser?.id}"]`,
-      `.chat-avatar-img[data-user-id="${this.currentUser?.id}"]`,
-    ];
-
-    myAvatarSelectors.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((img) => {
-        const image = img as HTMLImageElement;
-        image.src = avatarUrl;
-        image.loading = 'eager';
-        image.style.objectFit = 'cover';
-        image.style.objectPosition = 'center';
-        console.log('Обновлена аватарка:', selector);
-      });
+    this.element?.addEventListener('keypress', (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).id === 'message' && e.key === 'Enter') {
+        e.preventDefault();
+        console.log('Enter pressed in message input');
+        this.handleSendMessage();
+      }
     });
-  }
-
-  private addModalToDOM(): void {
-    if (!this.profileModal || !this.element) return;
-
-    const existingContainer = this.element.querySelector('#profileModalContainer');
-    if (existingContainer) {
-      existingContainer.remove();
-    }
-
-    const modalContainer = document.createElement('div');
-    modalContainer.id = 'profileModalContainer';
-
-    const modalHtml = this.profileModal.render();
-
-    modalContainer.innerHTML = modalHtml;
-    this.element.appendChild(modalContainer);
-
-    this.profileModal.componentDidMount();
-  }
-
-  closeProfileModal(): void {
-    console.log('Closing profile modal');
-
-    this.isModalOpen = false;
-
-    if (this.element) {
-      const modalContainer = this.element.querySelector('#profileModalContainer');
-      if (modalContainer) {
-        modalContainer.remove();
-      }
-    }
-
-    if (this.profileModal) {
-      this.profileModal.setProps({ isOpen: false });
-      this.profileModal = null;
-    }
-  }
-
-  async handleLogout(): Promise<void> {
-    try {
-      await api.logout();
-
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userLogin');
-
-      wsService.disconnect();
-
-      console.log('User logged out successfully');
-
-      this.closeProfileModal();
-
-      if ((window as any).appRouter) {
-        (window as any).appRouter.go('/');
-      } else {
-        window.location.href = '/';
-      }
-    } catch (error: any) {
-      console.error('Logout error:', error.message);
-
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userLogin');
-
-      if ((window as any).appRouter) {
-        (window as any).appRouter.go('/');
-      } else {
-        window.location.href = '/';
-      }
-    }
-  }
-
-  async handleDeleteProfile(): Promise<void> {
-    try {
-      alert('Профиль удален');
-
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userLogin');
-
-      wsService.disconnect();
-
-      this.closeProfileModal();
-
-      if ((window as any).appRouter) {
-        (window as any).appRouter.go('/');
-      } else {
-        window.location.href = '/';
-      }
-    } catch (error: any) {
-      console.error('Delete profile error:', error.message);
-      alert(`Ошибка удаления профиля: ${error.message}`);
-    }
   }
 
   handleCreateChat(): void {
@@ -627,63 +543,6 @@ export default class ChatsPage extends Block {
       console.error('Failed to create chat:', error.message);
       alert(`Ошибка создания чата: ${error.message}`);
     }
-  }
-
-  componentDidMount(): void {
-    console.log('ChatsPage mounted');
-
-    if (!this.eventHandlersAttached) {
-      this.setupEventDelegation();
-      this.eventHandlersAttached = true;
-    }
-  }
-
-  setupEventDelegation(): void {
-    console.log('Setting up event delegation...');
-
-    this.element?.addEventListener('click', (e: Event) => {
-      const target = e.target as HTMLElement;
-
-      const chatItem = target.closest('.chat-item');
-      if (chatItem) {
-        const chatId = parseInt(chatItem.getAttribute('data-chat-id') || '0');
-        if (chatId) {
-          console.log('🔥 КЛИК ПО ЧАТУ:', chatId);
-          this.handleChatSelect(chatId);
-          return;
-        }
-      }
-
-      if (target.id === 'sendMessage' || target.closest('#sendMessage')) {
-        e.preventDefault();
-        console.log('Send button clicked');
-        this.handleSendMessage();
-      } else if (target.id === 'createChat' || target.closest('#createChat')) {
-        e.preventDefault();
-        console.log('CREATE CHAT BUTTON CLICKED!');
-        this.handleCreateChat();
-      } else if (target.classList.contains('profile-link-button') || target.closest('.profile-link-button')) {
-        e.preventDefault();
-        console.log('Profile button clicked - opening modal');
-        this.openProfileModal();
-      } else if (target.id === 'addUserToChat' || target.closest('#addUserToChat')) {
-        e.preventDefault();
-        console.log('Add user clicked');
-        this.handleAddUserToChat();
-      } else if (target.id === 'removeUserFromChat' || target.closest('#removeUserFromChat')) {
-        e.preventDefault();
-        console.log('Remove user clicked');
-        this.handleRemoveUserFromChat();
-      }
-    });
-
-    this.element?.addEventListener('keypress', (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).id === 'message' && e.key === 'Enter') {
-        e.preventDefault();
-        console.log('Enter pressed in message input');
-        this.handleSendMessage();
-      }
-    });
   }
 
   render(): string {
@@ -752,9 +611,8 @@ export default class ChatsPage extends Block {
           </div>
         </section>
       </div>
-      
-      <div id="profileModalContainer"></div>
     </main>
     `;
   }
 }
+

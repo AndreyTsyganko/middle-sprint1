@@ -117,18 +117,48 @@ export default class ProfilePage extends Block {
         className: 'auth-button profile-save',
         onClick: () => this.handleSave(),
       }),
+      events: {
+        click: (e: Event) => this.handleClick(e),
+        submit: (e: Event) => this.handleFormSubmit(e),
+      },
     });
 
     this.fields = fields;
 
-    this.loadUserData();
+    setTimeout(() => {
+      this.loadUserData();
+    }, 0);
+  }
+
+  private handleClick(e: Event): void {
+    const target = e.target as HTMLElement;
+
+    if (target.id === 'backLink' || target.closest('#backLink')) {
+      e.preventDefault();
+      this.goToChats();
+    }
+
+    if (target.id === 'logoutButton' || target.closest('#logoutButton')) {
+      e.preventDefault();
+      this.handleLogout();
+    }
+
+    if (target.id === 'deleteProfileButton' || target.closest('#deleteProfileButton')) {
+      e.preventDefault();
+      alert('Удаление профиля пока не реализовано');
+    }
+  }
+
+  private handleFormSubmit(e: Event): void {
+    e.preventDefault();
+    this.handleSave();
   }
 
   async loadUserData(): Promise<void> {
     try {
       if (!api.isAuthenticated()) {
-        if (window.appRouter) {
-          window.appRouter.go('/');
+        if ((window as any).appRouter) {
+          (window as any).appRouter.go('/');
         }
         return;
       }
@@ -136,23 +166,45 @@ export default class ProfilePage extends Block {
       const user = await api.getUser();
       console.log('User data loaded:', user);
 
-      this.updateFormFields(user);
-
-      const props = this.props as unknown as ProfilePageProps;
-      if (user.avatar && props.avatar) {
-        props.avatar.setProps({ src: user.avatar });
+      if (user.avatar && !user.avatar.includes('http')) {
+        user.avatar = `https://ya-praktikum.tech/api/v2/resources${user.avatar}?t=${Date.now()}`;
       }
+
+      this.updateFormFields(user);
+      this.updateGlobalStore(user);
 
       this.setProps({ userData: user });
     } catch (error: any) {
       console.error('Failed to load user data:', error);
-      alert(`Ошибка загрузки профиля: ${error.message}`);
+      
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const user = JSON.parse(savedUser);
+          this.updateFormFields(user);
+        } catch (e) {
+        }
+      }
+    }
+  }
+
+  private updateGlobalStore(user: any): void {
+    try {
+      const { store } = (window as any);
+      if (store) {
+        store.set('user', user);
+      }
+    } catch (e) {
+      console.log('Store недоступен');
     }
   }
 
   updateFormFields(user: any): void {
+    if (!this.fields) return;
+    
     Object.keys(this.fields).forEach((key) => {
       const field = this.fields[key];
+      if (!field) return;
 
       const fieldProps = field.props as unknown as { name?: string };
       const fieldName = fieldProps.name;
@@ -183,7 +235,14 @@ export default class ProfilePage extends Block {
       const data: Record<string, string> = {};
       let isValid = true;
 
+      if (!this.fields) {
+        console.error('Fields is undefined');
+        return;
+      }
+
       Object.values(this.fields).forEach((field) => {
+        if (!field) return;
+        
         const value = field.getValue();
         const fieldProps = field.props as unknown as { name?: string };
         const fieldName = fieldProps.name;
@@ -216,12 +275,16 @@ export default class ProfilePage extends Block {
 
       const updatedUser = await api.updateProfile(profileData);
 
-      const oldPassword = this.fields.oldPassword.getValue();
-      const newPassword = this.fields.newPassword.getValue();
+      if (updatedUser.avatar && !updatedUser.avatar.includes('http')) {
+        updatedUser.avatar = `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}`;
+      }
+
+      const oldPassword = this.fields.oldPassword?.getValue();
+      const newPassword = this.fields.newPassword?.getValue();
 
       if (oldPassword && newPassword) {
         if (newPassword.length < 6) {
-          this.fields.newPassword.setError('Новый пароль должен быть не менее 6 символов');
+          this.fields.newPassword?.setError('Новый пароль должен быть не менее 6 символов');
           if (props.saveButton) {
             props.saveButton.setProps({ text: 'Сохранить', disabled: false });
           }
@@ -230,11 +293,13 @@ export default class ProfilePage extends Block {
 
         await api.updatePassword(oldPassword, newPassword);
 
-        this.fields.oldPassword.setProps({ value: '' });
-        this.fields.newPassword.setProps({ value: '' });
+        if (this.fields.oldPassword) this.fields.oldPassword.setProps({ value: '' });
+        if (this.fields.newPassword) this.fields.newPassword.setProps({ value: '' });
       }
 
       this.updateFormFields(updatedUser);
+      this.updateGlobalStore(updatedUser);
+      this.updateAvatarGlobally(updatedUser.avatar);
 
       this.showSuccessMessage('Профиль успешно сохранен!');
 
@@ -243,6 +308,11 @@ export default class ProfilePage extends Block {
       if (props.onSave) {
         props.onSave(updatedUser);
       }
+
+      setTimeout(() => {
+        this.goToChats();
+      }, 1500);
+
     } catch (error: any) {
       console.error('Failed to save profile:', error);
       alert(`Ошибка сохранения: ${error.message}`);
@@ -253,15 +323,39 @@ export default class ProfilePage extends Block {
     }
   }
 
+  private updateAvatarGlobally(avatarUrl: string): void {
+    const myAvatarSelectors = [
+      '.header-avatar-img',
+      '.profile-avatar',
+      '.user-avatar.current-user',
+    ];
+
+    myAvatarSelectors.forEach((selector) => {
+      const images = document.querySelectorAll(selector);
+      images.forEach((img: Element) => {
+        const image = img as HTMLImageElement;
+        image.src = avatarUrl;
+        image.style.objectFit = 'cover';
+      });
+    });
+  }
+
   async handleAvatarChange(file: File): Promise<void> {
     const props = this.props as unknown as ProfilePageProps;
 
     try {
       const updatedUser = await api.updateAvatar(file);
 
+      if (updatedUser.avatar && !updatedUser.avatar.includes('http')) {
+        updatedUser.avatar = `https://ya-praktikum.tech/api/v2/resources${updatedUser.avatar}?t=${Date.now()}`;
+      }
+
       if (props.avatar) {
         props.avatar.setProps({ src: updatedUser.avatar });
       }
+
+      this.updateGlobalStore(updatedUser);
+      this.updateAvatarGlobally(updatedUser.avatar);
 
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
@@ -289,6 +383,7 @@ export default class ProfilePage extends Block {
       padding: 15px 20px;
       border-radius: 8px;
       z-index: 1000;
+      animation: slideIn 0.3s ease;
     `;
 
     document.body.appendChild(messageEl);
@@ -300,9 +395,41 @@ export default class ProfilePage extends Block {
     }, 3000);
   }
 
-  handleBackClick(): void {
-    if (window.appRouter) {
-      window.appRouter.go('/messenger');
+  async handleLogout(): Promise<void> {
+    try {
+      await api.logout();
+
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userLogin');
+      localStorage.removeItem('user');
+
+      if ((window as any).appRouter) {
+        (window as any).appRouter.go('/');
+      } else {
+        window.location.href = '/';
+      }
+    } catch (error: any) {
+      console.error('Logout error:', error.message);
+
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userLogin');
+      localStorage.removeItem('user');
+
+      if ((window as any).appRouter) {
+        (window as any).appRouter.go('/');
+      } else {
+        window.location.href = '/';
+      }
+    }
+  }
+
+  private goToChats(): void {
+    if ((window as any).appRouter) {
+      (window as any).appRouter.go('/messenger');
+    } else {
+      window.location.href = '/messenger';
     }
   }
 
@@ -311,48 +438,63 @@ export default class ProfilePage extends Block {
     const { avatar } = props;
     const { saveButton } = props;
 
-    const nonPasswordFields = Object.values(this.fields).filter((field) => {
+    const nonPasswordFields = this.fields ? Object.values(this.fields).filter((field) => {
+      if (!field) return false;
       const fieldProps = field.props as unknown as { name?: string };
       const fieldName = fieldProps.name;
       return fieldName && !fieldName.includes('Password');
-    });
+    }) : [];
+
+    const oldPasswordField = this.fields?.oldPassword;
+    const newPasswordField = this.fields?.newPassword;
 
     return `
     <main class="auth-page">
       <div class="auth-card profile-card">
+        <button class="back-button" id="backLink" style="
+          background: none;
+          border: none;
+          color: #5b5252;
+          font-size: 14px;
+          cursor: pointer;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 0;
+        ">
+          <span style="font-size: 20px;">←</span> Назад к чатам
+        </button>
+        
         <h1 class="auth-title">Редактирование профиля</h1>
+        
         <div class="avatar-section">
           ${avatar?.render() || ''}
         </div>
 
-        <div class="auth-form profile-form">
-          ${nonPasswordFields
-    .map((field) => field.render())
-    .join('')}
+        <form class="auth-form profile-form" id="profileForm">
+          ${nonPasswordFields.map((field) => field.render()).join('')}
           
           <div class="password-section">
             <h3 class="password-title">Смена пароля</h3>
-            ${this.fields.oldPassword.render()}
-            ${this.fields.newPassword.render()}
+            ${oldPasswordField ? oldPasswordField.render() : ''}
+            ${newPasswordField ? newPasswordField.render() : ''}
           </div>
           
           <div class="profile-buttons">
             ${saveButton?.render() || ''}
-            <a href="/messenger" class="auth-link" id="backLink">Назад к чатам</a>
+            <button type="button" class="auth-button" id="logoutButton">Выйти</button>
+            <button type="button" class="auth-button delete-profile-button" id="deleteProfileButton">
+              Удалить профиль
+            </button>
           </div>
-        </div>
+        </form>
       </div>
     </main>
   `;
   }
 
   componentDidMount(): void {
-    const backLink = this.element?.querySelector('#backLink');
-    if (backLink) {
-      backLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.handleBackClick();
-      });
-    }
+    console.log('ProfilePage mounted');
   }
 }

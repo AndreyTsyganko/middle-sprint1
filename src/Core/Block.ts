@@ -60,42 +60,15 @@ export default class Block {
 
   private _componentDidMount(): void {
     this.componentDidMount();
-    this._addEvents();
   }
 
   componentDidMount(): void {}
-
-  private _addEvents(): void {
-    const { events = {} } = this.props as { events?: Record<string, (e: Event) => void> };
-
-    if (this._element && events) {
-      Object.entries(events).forEach(([eventName, handler]) => {
-        if (typeof handler === 'function') {
-          this._element!.addEventListener(eventName, handler);
-        }
-      });
-    }
-  }
-
-  private _removeEvents(): void {
-    const { events = {} } = this.props as { events?: Record<string, (e: Event) => void> };
-
-    if (this._element && events) {
-      Object.entries(events).forEach(([eventName, handler]) => {
-        if (typeof handler === 'function') {
-          this._element!.removeEventListener(eventName, handler);
-        }
-      });
-    }
-  }
 
   dispatchComponentDidMount(): void {
     this.eventBus().emit(Block.EVENTS.FLOW_CDM);
   }
 
   private _componentDidUpdate(oldProps: Props, newProps: Props): void {
-    this._removeEvents();
-
     const response = this.componentDidUpdate(oldProps, newProps);
     if (response) {
       this.eventBus().emit(Block.EVENTS.FLOW_RENDER);
@@ -121,12 +94,9 @@ export default class Block {
     const block = this.render();
     if (this._element && typeof block === 'string') {
       this._unbindEvents();
-
       this._element.innerHTML = block;
-
       this._bindEvents();
     }
-    this._addEvents();
   }
 
   render(): string {
@@ -162,8 +132,10 @@ export default class Block {
   }
 
   private _bindEvents(): void {
-    if (this.props.events && this._element) {
-      Object.entries(this.props.events).forEach(([eventName, listener]) => {
+    const events = this.props.events as Record<string, (e: Event) => void> | undefined;
+    
+    if (events && this._element) {
+      Object.entries(events).forEach(([eventName, listener]) => {
         if (listener && typeof listener === 'function') {
           this._events[eventName] = listener as EventListener;
           this._element!.addEventListener(eventName, listener as EventListener);
@@ -190,26 +162,6 @@ export default class Block {
   hide(): void {
     if (this._element) {
       this._element.style.display = 'none';
-    }
-  }
-
-  addEvent(eventName: string, listener: EventListener): void {
-    if (this._element) {
-      this._element.addEventListener(eventName, listener);
-
-      if (!this.props.events) {
-        this.props.events = {};
-      }
-      this.props.events[eventName] = listener;
-    }
-  }
-
-  removeEvent(eventName: string, listener: EventListener): void {
-    if (this._element) {
-      this._element.removeEventListener(eventName, listener);
-      if (this.props.events && this.props.events[eventName]) {
-        delete this.props.events[eventName];
-      }
     }
   }
 }
