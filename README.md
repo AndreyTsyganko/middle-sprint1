@@ -111,4 +111,6 @@ Router
 
 Так же настроен pre-commit с помощью Husky.
 
+Ссылка на Netlify - https://chatsprint4.netlify.app/
+
 
