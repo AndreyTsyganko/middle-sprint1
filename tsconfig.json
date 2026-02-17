@@ -9,7 +9,8 @@
     "skipLibCheck": true,
     "types": ["mocha", "node"],
     "noImplicitAny": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
   },
   "ts-node": {
     "esm": true,
