@@ -7,7 +7,8 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": ["mocha", "node"]
+    "types": ["mocha", "node"],
+    "noImplicitAny": true
   },
   "ts-node": {
     "esm": true,
