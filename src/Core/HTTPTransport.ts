@@ -5,13 +5,21 @@ const METHODS = {
   DELETE: 'DELETE',
 };
 
-function queryStringify(data: Record<string, unknown>): string {
+export function queryStringify(data: Record<string, unknown>): string {
   if (!data || typeof data !== 'object') {
     return '';
   }
 
   const params = Object.keys(data)
-    .map((key) => `${key}=${encodeURIComponent(String(data[key]))}`)
+    .map((key) => {
+      const value = data[key];
+      
+      if (value && typeof value === 'object') {
+        return `${key}=${encodeURIComponent(JSON.stringify(value))}`;
+      }
+      
+      return `${key}=${encodeURIComponent(String(value))}`;
+    })
     .join('&');
 
   return params ? `?${params}` : '';
@@ -25,7 +33,7 @@ type Options = {
   withCredentials?: boolean;
 };
 
-export default class HTTPTransport {
+class HTTPTransport {
   private baseUrl: string;
 
   constructor(baseUrl: string = '') {
@@ -37,13 +45,17 @@ export default class HTTPTransport {
     return `${this.baseUrl}${url}`;
   }
 
-  get = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.GET }, options.timeout);
+  get = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.GET }, options.timeout);
 
-  post = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.POST }, options.timeout);
+  post = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.POST }, options.timeout);
 
-  put = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
+  put = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
 
-  delete = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
+  delete = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
+    this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
 
   request = (url: string, options: Options = {}, timeout = 5000): Promise<XMLHttpRequest> => {
     const {
@@ -76,8 +88,8 @@ export default class HTTPTransport {
       if (timeout) {
         xhr.timeout = timeout;
         xhr.ontimeout = () => {
-          console.error(`HTTPTransport: Request timeout after ${timeout}ms`);
-          reject(new Error(`Request timeout after ${timeout}ms`));
+          console.error(`HTTPTransport: Timeout for ${method} ${url}`);
+          reject(new Error('Request timeout'));
         };
       }
 
@@ -88,22 +100,31 @@ export default class HTTPTransport {
       xhr.onload = () => {
         console.log(`HTTPTransport: ${method} ${url} - Status: ${xhr.status}`);
 
-        if (xhr.status === 401) {
-          console.error('HTTP 401 Unauthorized - Cookie issue');
-          console.log('Response headers:', xhr.getAllResponseHeaders());
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr);
+        } else {
+          console.error(`HTTPTransport: HTTP error ${xhr.status}`);
+          
+          if (xhr.status === 401) {
+            console.error('HTTP 401 Unauthorized - Cookie issue');
+            console.log('Response headers:', xhr.getAllResponseHeaders());
+            reject({ 
+              status: xhr.status, 
+              response: xhr.responseText,
+              headers: xhr.getAllResponseHeaders()
+            });
+          } else {
+            reject({ 
+              status: xhr.status, 
+              response: xhr.responseText 
+            });
+          }
         }
-
-        resolve(xhr);
       };
 
       xhr.onerror = () => {
         console.error(`HTTPTransport: Network error for ${method} ${url}`);
         reject(new Error('Network error'));
-      };
-
-      xhr.ontimeout = () => {
-        console.error(`HTTPTransport: Timeout for ${method} ${url}`);
-        reject(new Error('Request timeout'));
       };
 
       if (method === METHODS.GET || !data) {
@@ -118,3 +139,5 @@ export default class HTTPTransport {
     });
   };
 }
+
+export default HTTPTransport;

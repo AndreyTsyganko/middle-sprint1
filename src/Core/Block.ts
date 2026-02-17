@@ -1,4 +1,4 @@
-import EventBus from './EventBus';
+import EventBus from './EventBus.js';
 
 export type Props = Record<string, unknown>;
 export default class Block {
