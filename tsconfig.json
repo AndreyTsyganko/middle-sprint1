@@ -10,7 +10,7 @@
     "types": ["mocha", "node"],
     "noImplicitAny": true,
     "noUnusedParameters": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": true
   },
   "ts-node": {
     "esm": true,
