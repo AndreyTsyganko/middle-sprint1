@@ -13,11 +13,11 @@ export function queryStringify(data: Record<string, unknown>): string {
   const params = Object.keys(data)
     .map((key) => {
       const value = data[key];
-      
+
       if (value && typeof value === 'object') {
         return `${key}=${encodeURIComponent(JSON.stringify(value))}`;
       }
-      
+
       return `${key}=${encodeURIComponent(String(value))}`;
     })
     .join('&');
@@ -45,17 +45,13 @@ class HTTPTransport {
     return `${this.baseUrl}${url}`;
   }
 
-  get = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.GET }, options.timeout);
+  get = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.GET }, options.timeout);
 
-  post = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.POST }, options.timeout);
+  post = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.POST }, options.timeout);
 
-  put = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
+  put = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.PUT }, options.timeout);
 
-  delete = (url: string, options: Options = {}): Promise<XMLHttpRequest> => 
-    this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
+  delete = (url: string, options: Options = {}): Promise<XMLHttpRequest> => this.request(url, { ...options, method: METHODS.DELETE }, options.timeout);
 
   request = (url: string, options: Options = {}, timeout = 5000): Promise<XMLHttpRequest> => {
     const {
@@ -104,21 +100,19 @@ class HTTPTransport {
           resolve(xhr);
         } else {
           console.error(`HTTPTransport: HTTP error ${xhr.status}`);
-          
+
+          const errorResponse = {
+            status: xhr.status,
+            response: xhr.responseText,
+            headers: xhr.getAllResponseHeaders()
+          };
+
           if (xhr.status === 401) {
             console.error('HTTP 401 Unauthorized - Cookie issue');
             console.log('Response headers:', xhr.getAllResponseHeaders());
-            reject({ 
-              status: xhr.status, 
-              response: xhr.responseText,
-              headers: xhr.getAllResponseHeaders()
-            });
-          } else {
-            reject({ 
-              status: xhr.status, 
-              response: xhr.responseText 
-            });
           }
+
+          reject(errorResponse);
         }
       };
 

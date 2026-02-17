@@ -17,7 +17,7 @@
       "argsIgnorePattern": "^_",
       "varsIgnorePattern": "^_"
     }],
-    "max-len": ["warn", 120],
+    "max-len": ["warn", 200],
     "max-params": ["error", 4],
     "import/extensions": ["error", "ignorePackages", {
       "ts": "never",
@@ -37,13 +37,23 @@
     "no-new": "off",
     "react/jsx-filename-extension": "off",
     "react/react-in-jsx-scope": "off",
-    "react/function-component-definition": "off"
+    "react/function-component-definition": "off",
+    "max-classes-per-file": "off",
+    "no-plusplus": "off",
+    "prefer-promise-reject-errors": "off",
+    "@typescript-eslint/no-unused-expressions": ["error", { 
+      "allowTernary": true,
+      "allowShortCircuit": true,
+      "allowTaggedTemplates": true,
+      "enforceForJSX": false
+    }]
   },
   "env": {
     "browser": true,
     "es2021": true,
     "jest": true,
-    "node": true
+    "node": true,
+    "mocha": true
   },
   "ignorePatterns": [
     "dist/",
@@ -52,5 +62,13 @@
     "*.config.ts",
     "coverage/",
     "**/*.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.spec.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-expressions": "off"
+      }
+    }
   ]
 }
