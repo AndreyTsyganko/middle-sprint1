@@ -104,7 +104,7 @@ class HTTPTransport {
           const errorResponse = {
             status: xhr.status,
             response: xhr.responseText,
-            headers: xhr.getAllResponseHeaders()
+            headers: xhr.getAllResponseHeaders(),
           };
 
           if (xhr.status === 401) {
