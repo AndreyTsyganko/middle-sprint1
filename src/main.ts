@@ -1,265 +1,168 @@
 import './styles/main.scss';
+import { Router } from './utils/router';
 import LoginPage from './pages/LoginPage/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
 import ProfilePage from './pages/ProfilePage/ProfilePage';
 import ChatsPage from './pages/ChatsPage/ChatsPage';
-interface LoginData {
-  login: string;
-  password: string;
+
+import { api } from './Api/Client';
+
+console.log('App starting...');
+
+const router = new Router();
+
+console.log('Registering routes...');
+router
+  .use('/', LoginPage)
+  .use('/sign-up', RegisterPage)
+  .use('/settings', ProfilePage)
+  .use('/messenger', ChatsPage)
+  .start();
+
+declare global {
+  interface Window {
+    appRouter: Router;
+    api: typeof api;
+    handleLoginSuccess: () => void;
+    handleLogout: () => Promise<void>;
+    isAuthenticated: () => boolean;
+    getCurrentUser: () => any;
+  }
 }
-class SimpleApp {
-  private currentPage: LoginPage | RegisterPage | ProfilePage | ChatsPage | null = null;
 
-  constructor() {
-    this.handleInitialRoute();
-    
-    this.setupLinkNavigation();
+window.appRouter = router;
+window.api = api;
 
-    window.addEventListener('popstate', () => {
-      const path = window.location.pathname;
-      this.showPageByPath(path);
-    });
+console.log('App initialized');
+
+async function checkAuth(): Promise<boolean> {
+  console.log('Checking authentication...');
+
+  try {
+    const user = await api.getUser();
+    console.log('User authenticated:', user);
+
+    localStorage.setItem('user', JSON.stringify(user));
+    localStorage.setItem('authChecked', 'true');
+
+    return true;
+  } catch (error: any) {
+    console.log('User not authenticated:', error.message);
+
+    localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
+    localStorage.setItem('authChecked', 'true');
+
+    return false;
   }
+}
 
-  private handleInitialRoute(): void {
-    const path = window.location.pathname;
-    console.log('Initial path:', path);
-    this.showPageByPath(path);
-  }
+export function handleLoginSuccess(): void {
+  console.log('Login successful, updating auth state...');
 
-  private showPageByPath(path: string): void {
-    switch (path) {
-      case '/':
-      case '/login':
-        this.showLoginPage();
-        break;
-      case '/register':
-        this.showRegisterPage();
-        break;
-      case '/profile':
-        this.showProfilePage();
-        break;
-      case '/chats':
-        this.showChatsPage();
-        break;
-      default:
-        console.warn(`Unknown path: ${path}, redirecting to login`);
-        window.history.replaceState({}, '', '/login');
-        this.showLoginPage();
-        break;
-    }
-  }
+  localStorage.setItem('authChecked', 'true');
 
-  private showLoginPage(): void {
-    const page = new LoginPage({
-      onLogin: (data: LoginData) => {
-        console.log('Login:', data);
-        window.history.pushState({}, '', '/chats');
-        this.showChatsPage();
-      },
-      onRegister: () => {
-        window.history.pushState({}, '', '/register');
-        this.showRegisterPage();
-      },
-    });
+  checkAuth().then((authenticated) => {
+    if (authenticated) {
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
 
-    this.renderPage(page);
-  }
-
-  private showRegisterPage(): void {
-    const page = new RegisterPage({
-      onRegister: (data: unknown) => {
-        console.log('Register:', data);
-        window.history.pushState({}, '', '/chats');
-        this.showChatsPage();
-      },
-    });
-
-    this.renderPage(page);
-  }
-
-  private showProfilePage(): void {
-    const page = new ProfilePage({
-      user: {
-        first_name: 'Иван',
-        second_name: 'Иванович',
-        display_name: 'Ваня',
-        login: 'ivanov',
-        email: 'ivan@mail.ru',
-        phone: '+7 (999) 123-45-67',
-        avatar: '/ui/BMW 1.jpg',
-      },
-      onSave: (data: unknown) => {
-        console.log('Save profile:', data);
-        alert('Профиль сохранен!');
-      },
-      onAvatarChange: (file: File) => {
-        console.log('Avatar change:', file.name);
-        alert(`Аватар изменен: ${file.name}`);
-      },
-      onBack: () => {
-        window.history.pushState({}, '', '/chats');
-        this.showChatsPage();
-      },
-    });
-
-    this.renderPage(page);
-  }
-
-  private showChatsPage(): void {
-    const page = new ChatsPage({
-      chats: [
-        {
-          id: 1,
-          title: 'Дарья',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Привет! Как дела?',
-          time: '10:49',
-          unreadCount: 2,
-        },
-        {
-          id: 2,
-          title: 'Киноклуб',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Смотрим сегодня в 20:00',
-          time: '12:00',
-          unreadCount: 5,
-        },
-        {
-          id: 3,
-          title: 'Илья',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Дедлайн через 2 дня',
-          time: '15:30',
-          unreadCount: 0,
-        },
-        {
-          id: 4,
-          title: 'Вадим',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Круто!',
-          time: 'Пт',
-          unreadCount: 0,
-        },
-        {
-          id: 5,
-          title: 'Вика',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Привет)',
-          time: 'Пн',
-          unreadCount: 0,
-        },
-        {
-          id: 6,
-          title: 'Новости',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Ученые открыли новый вид пауков...',
-          time: 'Пн',
-          unreadCount: 4,
-        },
-        {
-          id: 7,
-          title: 'Никита',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Привет, завтра у нас выходной!',
-          time: 'Пн',
-          unreadCount: 0,
-        },
-        {
-          id: 8,
-          title: 'Света',
-          avatar: '/ui/BMW 1.jpg',
-          lastMessage: 'Гуляю с собакой)',
-          time: 'Ср',
-          unreadCount: 0,
-        },
-      ],
-      messages: [
-        {
-          id: 1, content: 'Привет! Как у тебя дела?', time: '10:49', isMine: false,
-        },
-        {
-          id: 2, content: 'Всё отлично, а у тебя?)', time: '10:50', isMine: true,
-        },
-        {
-          id: 3, content: 'У меня прекрасно) Завтра встретимся?', time: '10:51', isMine: false,
-        },
-        {
-          id: 4, content: 'Да, в 18:00 у кафе', time: '10:52', isMine: true,
-        },
-        {
-          id: 5, content: 'Отлично)', time: '11:00', isMine: false,
-        },
-        {
-          id: 6, content: 'Приедешь на такси?', time: '11:01', isMine: true,
-        },
-        {
-          id: 7, content: 'Да)', time: '12:30', isMine: false,
-        },
-        {
-          id: 8, content: 'Ок, тогда я тоже на такси!)', time: '12:31', isMine: true,
-        },
-      ],
-      onSendMessage: (message: string) => {
-        console.log('Send message:', message);
-      },
-      onProfileClick: () => {
-        window.history.pushState({}, '', '/profile');
-        this.showProfilePage();
-      },
-      onChatSelect: (chatId: number) => {
-        console.log('Select chat:', chatId);
-      },
-    });
-
-    this.renderPage(page);
-  }
-
-  private renderPage(page: LoginPage | RegisterPage | ProfilePage | ChatsPage): void {
-    if (this.currentPage) {
-      this.currentPage.hide();
-    }
-
-    this.currentPage = page;
-
-    const app = document.getElementById('app');
-    if (app && page.getContent()) {
-      app.innerHTML = '';
-      app.appendChild(page.getContent()!);
-      page.dispatchComponentDidMount();
-    }
-  }
-
-  private setupLinkNavigation(): void {
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      const link = target.closest('a');
-
-      if (link && link.href) {
-        const url = new URL(link.href);
-
-        if (url.origin !== window.location.origin) {
-          return;
-        }
-
-        e.preventDefault();
-
-        const path = url.pathname;
-
-        window.history.pushState({}, '', path);
-        
-        this.showPageByPath(path);
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        router.go(redirectPath);
+      } else {
+        router.go('/messenger');
       }
-    });
+    }
+  });
+}
+
+export async function handleLogout(): Promise<void> {
+  console.log('Logging out...');
+
+  try {
+    await api.logout();
+  } catch (error) {
+    console.error('Logout API error:', error);
+  } finally {
+    localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
+    localStorage.setItem('authChecked', 'true');
+
+    router.go('/');
   }
 }
+
+async function initApp(): Promise<void> {
+  console.log('initApp called');
+
+  const currentPath = window.location.pathname;
+  const publicRoutes = ['/', '/sign-up'];
+  const protectedRoutes = ['/settings', '/messenger'];
+
+  console.log('Current path:', currentPath);
+
+  const authenticated = await checkAuth();
+
+  if (authenticated) {
+    console.log('User is authenticated');
+
+    if (publicRoutes.includes(currentPath)) {
+      console.log(`Authenticated user on public page ${currentPath}, redirecting to /messenger`);
+      router.go('/messenger');
+      return;
+    }
+
+    if (protectedRoutes.includes(currentPath)) {
+      console.log(`Authenticated user accessing protected route ${currentPath}`);
+    }
+  } else {
+    console.log('User is not authenticated');
+
+    if (protectedRoutes.includes(currentPath)) {
+      console.log(`Unauthorized access to ${currentPath}, redirecting to login`);
+
+      sessionStorage.setItem('redirectAfterLogin', currentPath);
+
+      router.go('/');
+      return;
+    }
+
+    if (publicRoutes.includes(currentPath)) {
+      console.log(`Unauthenticated user accessing public route ${currentPath}`);
+      return;
+    }
+
+    console.log(`Unknown route ${currentPath}, redirecting to login`);
+    router.go('/');
+  }
+}
+
+export function isAuthenticated(): boolean {
+  const user = localStorage.getItem('user');
+  const authChecked = localStorage.getItem('authChecked') === 'true';
+  return authChecked && !!user;
+}
+
+export function getCurrentUser(): any {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export { router, api };
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, initializing app...');
-  try {
-    new SimpleApp();
-    console.log('App initialized successfully');
-  } catch (error) {
-    console.error('Error initializing app:', error);
-  }
+  initApp();
 });
+
+window.handleLoginSuccess = handleLoginSuccess;
+window.handleLogout = handleLogout;
+window.isAuthenticated = isAuthenticated;
+window.getCurrentUser = getCurrentUser;

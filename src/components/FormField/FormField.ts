@@ -1,5 +1,6 @@
 import Block from '../../Core/Block';
 import Input from '../Input/Input';
+
 interface FormFieldProps {
   label: string;
   name: string;
@@ -49,7 +50,7 @@ export default class FormField extends Block {
     const required = (this.props.required as boolean) || false;
     const error = (this.props.error as string) || '';
     const input = this.props.input as Input;
-    
+
     return `
       <div class="form-field">
         <label class="form-label">

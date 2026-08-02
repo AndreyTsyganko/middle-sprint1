@@ -1,9 +1,8 @@
 import Block from '../../Core/Block';
+
 interface AvatarProps {
   src: string;
-  alt?: string;
   size?: 'small' | 'medium' | 'large';
-  className?: string;
   onChange?: (file: File) => void;
 }
 
@@ -11,11 +10,14 @@ export default class Avatar extends Block {
   constructor(props: AvatarProps) {
     super('div', {
       ...props,
+      size: props.size || 'medium',
       events: {
         change: (event: Event) => {
           const input = event.target as HTMLInputElement;
-          if (input.files && input.files[0] && props.onChange) {
-            props.onChange(input.files[0]);
+          if (input.files && input.files[0]) {
+            if (props.onChange) {
+              props.onChange(input.files[0]);
+            }
           }
         },
       },
@@ -23,29 +25,36 @@ export default class Avatar extends Block {
   }
 
   render(): string {
-    const props = this.props as unknown as AvatarProps;
-    const { src, alt = 'Аватар', size = 'medium', className = '' } = props;
+    const props = this.props as unknown as AvatarProps & { size: 'small' | 'medium' | 'large' };
+    const { src, size = 'medium' } = props;
 
-    const sizeClass = {
-      small: 'avatar-small',
-      medium: 'avatar-medium',
-      large: 'avatar-large',
-    }[size];
+    const sizeClasses: Record<'small' | 'medium' | 'large', string> = {
+      small: 'avatar-image-small',
+      medium: 'avatar-image-medium',
+      large: 'avatar-image-large',
+    };
+
+    const validSize = size in sizeClasses ? size as 'small' | 'medium' | 'large' : 'medium';
+    const sizeClass = sizeClasses[validSize];
 
     return `
-      <div class="avatar-container ${className}">
+      <div class="avatar-container">
         <img 
           src="${src}" 
-          alt="${alt}" 
+          alt="Аватар" 
           class="avatar-image ${sizeClass}"
-        />
-        <label for="avatar-input" class="avatar-change-link">Поменять аватар</label>
+          id="avatarImage"
+        >
+        <label for="avatarInput" class="avatar-change-link">
+          Изменить аватар
+        </label>
         <input 
           type="file" 
-          id="avatar-input" 
-          accept="image/*" 
+          id="avatarInput" 
           class="avatar-input"
-        />
+          accept="image/*"
+        >
+        <div class="error-message" id="avatarError"></div>
       </div>
     `;
   }

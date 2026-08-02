@@ -1,4 +1,4 @@
-import EventBus from './EventBus';
+import EventBus from './EventBus.js';
 
 export type Props = Record<string, unknown>;
 export default class Block {
@@ -17,6 +17,8 @@ export default class Block {
 
   props: Props;
 
+  private _events: Record<string, EventListener> = {};
+
   constructor(tagName = 'div', props: Props = {}) {
     const eventBus = new EventBus();
     this._meta = { tagName, props };
@@ -30,17 +32,17 @@ export default class Block {
     eventBus.on(Block.EVENTS.INIT, () => {
       this.init();
     });
-    
+
     eventBus.on(Block.EVENTS.FLOW_CDM, () => {
       this._componentDidMount();
     });
-    
+
     eventBus.on(Block.EVENTS.FLOW_CDU, (...args: unknown[]) => {
       const oldProps = args[0] as Props;
       const newProps = args[1] as Props;
       this._componentDidUpdate(oldProps, newProps);
     });
-    
+
     eventBus.on(Block.EVENTS.FLOW_RENDER, () => {
       this._render();
     });
@@ -58,42 +60,15 @@ export default class Block {
 
   private _componentDidMount(): void {
     this.componentDidMount();
-    this._addEvents();
   }
 
   componentDidMount(): void {}
-
-  private _addEvents(): void {
-    const { events = {} } = this.props as { events?: Record<string, (e: Event) => void> };
-    
-    if (this._element && events) {
-      Object.entries(events).forEach(([eventName, handler]) => {
-        if (typeof handler === 'function') {
-          this._element!.addEventListener(eventName, handler);
-        }
-      });
-    }
-  }
-
-  private _removeEvents(): void {
-    const { events = {} } = this.props as { events?: Record<string, (e: Event) => void> };
-    
-    if (this._element && events) {
-      Object.entries(events).forEach(([eventName, handler]) => {
-        if (typeof handler === 'function') {
-          this._element!.removeEventListener(eventName, handler);
-        }
-      });
-    }
-  }
 
   dispatchComponentDidMount(): void {
     this.eventBus().emit(Block.EVENTS.FLOW_CDM);
   }
 
   private _componentDidUpdate(oldProps: Props, newProps: Props): void {
-    this._removeEvents();
-    
     const response = this.componentDidUpdate(oldProps, newProps);
     if (response) {
       this.eventBus().emit(Block.EVENTS.FLOW_RENDER);
@@ -118,9 +93,10 @@ export default class Block {
   private _render(): void {
     const block = this.render();
     if (this._element && typeof block === 'string') {
+      this._unbindEvents();
       this._element.innerHTML = block;
+      this._bindEvents();
     }
-    this._addEvents();
   }
 
   render(): string {
@@ -153,6 +129,27 @@ export default class Block {
 
   private _createDocumentElement(tagName: string): HTMLElement {
     return document.createElement(tagName);
+  }
+
+  private _bindEvents(): void {
+    const events = this.props.events as Record<string, (e: Event) => void> | undefined;
+    if (events && this._element) {
+      Object.entries(events).forEach(([eventName, listener]) => {
+        if (listener && typeof listener === 'function') {
+          this._events[eventName] = listener as EventListener;
+          this._element!.addEventListener(eventName, listener as EventListener);
+        }
+      });
+    }
+  }
+
+  private _unbindEvents(): void {
+    if (this._element) {
+      Object.entries(this._events).forEach(([eventName, listener]) => {
+        this._element!.removeEventListener(eventName, listener);
+      });
+      this._events = {};
+    }
   }
 
   show(): void {

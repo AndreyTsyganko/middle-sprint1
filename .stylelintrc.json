@@ -1,7 +1,13 @@
 {
-  "extends": "stylelint-config-standard",
+  "extends": "stylelint-config-standard-scss",
   "rules": {
-    "color-hex-case": "lower"
+    "color-hex-case": "lower",
+    "color-hex-length": "long",
+    "alpha-value-notation": "number",
+    "color-function-notation": "legacy",
+    "no-eol-whitespace": true,
+    "no-empty-first-line": true,
+    "indentation": 2
   },
   "ignoreFiles": [
     "build/*"
